@@ -29,13 +29,26 @@
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "exports": {
-    ".": {
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs",
-      "types": "./dist/index.d.ts"
+  "typesVersions": {
+    "*": {
+      "*": [
+        "dist/index.d.ts"
+      ]
     }
   },
+  "exports": {
+    ".": {
+      "browser": {
+        "import": "./dist/browser/index.esm.js",
+        "default": "./dist/browser/index.esm.js"
+      },
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "browser": "dist/browser/index.esm.js",
+  "unpkg": "dist/browser/index.iife.min.js",
+  "jsdelivr": "dist/browser/index.iife.min.js",
   "files": [
     "dist/",
     "LICENSE",
@@ -59,7 +72,8 @@
   "license": "MIT",
   "author": "Federico Girolami <f.girolami@codecorn.it|https://codecorn.it> (@fgirolami29|@CodeCornTech)",
   "scripts": {
-    "build": "rm -rf dist && tsc && node ./scripts/build-cjs.js && node ./scripts/postbuild-nocheck.js && node ./scripts/copy-cli.js",
+    "build": "rm -rf dist && tsc && node ./scripts/build-cjs.js && node ./scripts/postbuild-nocheck.js && node ./scripts/copy-cli.js && npm run build:browser",
+    "build:browser": "node ./scripts/build-browser.mjs",
     "cli-test": "node ./bin/cli.mjs \"AB 123 CD\" --countries IT --type car --pretty",
     "prepublishOnly": "npm run build",
     "test": "node -e \"import('./dist/index.js').then(m=>console.log(m.validatePlate('AB 123 CD',['IT'])))\""
@@ -67,5 +81,8 @@
   "devDependencies": {
     "types": "0.1.1",
     "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "esbuild": "0.25.10"
   }
 }
