@@ -30,7 +30,7 @@
   "bugs": {
     "url": "https://github.com/CodeCornTech/euro-plate-validator/issues"
   },
-  "homepage": "https://github.com/CodeCornTech/euro-plate-validator#readme",
+  "homepage": "https://github.com/CodeCornTech/euro-plate-validator/issues#readme",
   "scripts": {
     "build": "rm -rf dist && tsc && node ./scripts/build-cjs.js && node ./scripts/postbuild-nocheck.js && node ./scripts/copy-cli.js",
     "prepublishOnly": "npm run build",
