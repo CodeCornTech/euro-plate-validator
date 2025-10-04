@@ -1,0 +1,20 @@
+{
+  "name": "euro-plate-validator",
+  "version": "1.0.0",
+  "description": "European license plate validator (Russia excluded).",
+  "main": "./dist/index.cjs",
+  "scripts": {
+    "test": "node -e \"import(\\\"./dist/index.js\\\").then(m=>console.log(m.validatePlate(\\\"AB 123 CD\\\",[\\\"IT\\\"])))\"",
+    "build": "tsc && node ./scripts/build-cjs.js",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "type": "module",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}
