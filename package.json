@@ -1,5 +1,5 @@
 {
-  "name": "euro-plate-validator",
+  "name": "@codecorn/euro-plate-validator",
   "version": "1.0.1",
   "description": "European license plate validator (Russia excluded).Syntax-only validation via regex for multiple EU/EEA countries including Italy, UK, Germany, France, Spain and more.Supports Node.js (TypeScript package) and PHP library.",
   "keywords": [
