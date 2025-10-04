@@ -1,6 +1,6 @@
 {
   "name": "euro-plate-validator",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "European license plate validator (Russia excluded).Syntax-only validation via regex for multiple EU/EEA countries including Italy, UK, Germany, France, Spain and more.Supports Node.js (TypeScript package) and PHP library.",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -13,8 +13,11 @@
       "types": "./dist/index.d.ts"
     }
   },
+  "files": [
+    "dist/"
+  ],
   "bin": {
-    "euro-plate-validator": "./bin/cli.mjs"
+    "euro-plate-validator": "./dist/cli.mjs"
   },
   "sideEffects": false,
   "publishConfig": {
@@ -29,7 +32,7 @@
   },
   "homepage": "https://github.com/CodeCornTech/euro-plate-validator#readme",
   "scripts": {
-    "build": "rm -rf dist && tsc && node ./scripts/build-cjs.js && node ./scripts/postbuild-nocheck.js",
+    "build": "rm -rf dist && tsc && node ./scripts/build-cjs.js && node ./scripts/postbuild-nocheck.js && node ./scripts/copy-cli.js",
     "prepublishOnly": "npm run build",
     "test": "node -e \"import('./dist/index.js').then(m=>console.log(m.validatePlate('AB 123 CD',['IT'])))\"",
     "cli-test": "node ./bin/cli.mjs \"AB 123 CD\" --countries IT --type car --pretty"
