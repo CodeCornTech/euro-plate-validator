@@ -2,12 +2,14 @@
   "compilerOptions": {
     "target": "ES2022",
     "lib": ["ES2022", "DOM"],
-    "module": "ES2022",
-    "moduleResolution": "Bundler",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "declaration": true,
     "outDir": "./dist",
     "strict": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "checkJs": false
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": ["node_modules", "_php_variant/**", "bin/**", "dist/**", "**/*.test.ts"]
 }

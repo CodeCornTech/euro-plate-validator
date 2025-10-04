@@ -1,7 +1,13 @@
-import type { CountryKey } from "./countries";
-import { RX } from "./countries";
+import type { CountryKey, VehicleType, CountryDef } from "./countries.js";
+import { RX, supportedCountries } from "./countries.js";
 
-export interface Match { country: CountryKey; name: string; }
+/** Risultato di un match paese/targa */
+export interface Match {
+  country: CountryKey;
+  name: string;
+}
+
+/** Esito della validazione */
 export interface ValidationResult {
   isValid: boolean;
   matches: Match[];
@@ -9,31 +15,88 @@ export interface ValidationResult {
   errors?: string[];
 }
 
+/** Opzioni runtime */
+export interface ValidateOptions {
+  /** "car" | "motorcycle" | "any" (default: "any") */
+  vehicleType?: VehicleType;
+}
+
+/**
+ * Normalizza l'input targa: maiuscolo, spazi consolidati, trim.
+ */
 export function normalize(input: string): string {
-  return String(input || "")
+  return String(input ?? "")
     .toUpperCase()
     .replace(/\s+/g, " ")
     .trim();
 }
 
-export function validatePlate(plate: string, countries?: CountryKey[]): ValidationResult {
-  const norm = normalize(plate);
-  const picks = (countries && countries.length
-    ? countries.filter((c): c is CountryKey => c in RX)
-    : (Object.keys(RX) as CountryKey[])
-  );
+/**
+ * Genera i pattern (RegExp) per un dato paese e tipo veicolo.
+ */
+function* pickPatternsFor(
+  country: CountryKey,
+  vehicleType: VehicleType
+): Generator<RegExp, void, unknown> {
+  const set: CountryDef["patterns"] = RX[country].patterns;
 
-  if (!norm) return { isValid: false, matches: [], checked: picks, errors: ["empty"] };
-  if (!picks.length) return { isValid: false, matches: [], checked: [], errors: ["no_countries_selected"] };
+  if (vehicleType === "car" || vehicleType === "any") {
+    for (const p of set.car ?? []) yield p.rx;
+  }
+  if (vehicleType === "motorcycle" || vehicleType === "any") {
+    for (const p of set.motorcycle ?? []) yield p.rx;
+  }
+}
+
+/**
+ * Valida una targa contro uno o più paesi.
+ *
+ * @param plate Stringa targa (verrà normalizzata).
+ * @param countries Lista di country code (se assente, controlla tutti i paesi supportati).
+ * @param options vehicleType: "car" | "motorcycle" | "any" (default "any").
+ */
+export function validatePlate(
+  plate: string,
+  countries?: readonly CountryKey[],
+  options: ValidateOptions = {}
+): ValidationResult {
+  const vehicleType: VehicleType = options.vehicleType ?? "any";
+  const norm = normalize(plate);
+
+  const picks: CountryKey[] =
+    countries && countries.length
+      ? countries.filter((c): c is CountryKey => c in RX)
+      : [...supportedCountries];
+
+  if (!norm) {
+    return { isValid: false, matches: [], checked: picks, errors: ["empty"] };
+  }
+  if (!picks.length) {
+    return {
+      isValid: false,
+      matches: [],
+      checked: [],
+      errors: ["no_countries_selected"],
+    };
+  }
 
   const matches: Match[] = [];
   for (const c of picks) {
-    const { name, patterns } = RX[c];
-    for (const { rx } of patterns) {
-      if (rx.test(norm)) { matches.push({ country: c, name }); break; }
+    for (const rx of pickPatternsFor(c, vehicleType)) {
+      if (rx.test(norm)) {
+        matches.push({ country: c, name: RX[c].name });
+        break;
+      }
     }
   }
-  return { isValid: matches.length > 0, matches, checked: picks, errors: matches.length ? undefined : ["no_match"] };
+
+  return {
+    isValid: matches.length > 0,
+    matches,
+    checked: picks,
+    errors: matches.length ? undefined : ["no_match"],
+  };
 }
 
-export { RX };
+// Re-export utile se vuoi accedere alla mappa/keys
+export { RX, supportedCountries };

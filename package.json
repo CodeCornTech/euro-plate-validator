@@ -1,20 +1,66 @@
 {
   "name": "euro-plate-validator",
   "version": "1.0.0",
-  "description": "European license plate validator (Russia excluded).",
-  "main": "./dist/index.cjs",
-  "scripts": {
-    "test": "node -e \"import(\\\"./dist/index.js\\\").then(m=>console.log(m.validatePlate(\\\"AB 123 CD\\\",[\\\"IT\\\"])))\"",
-    "build": "tsc && node ./scripts/build-cjs.js",
-    "prepublishOnly": "npm run build"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "MIT",
+  "description": "European license plate validator (Russia excluded).Syntax-only validation via regex for multiple EU/EEA countries including Italy, UK, Germany, France, Spain and more.Supports Node.js (TypeScript package) and PHP library.",
   "type": "module",
+  "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "bin": {
+    "euro-plate-validator": "./bin/cli.mjs"
+  },
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CodeCornTech/euro-plate-validator.git"
+  },
+  "bugs": {
+    "url": "https://github.com/CodeCornTech/euro-plate-validator/issues"
+  },
+  "homepage": "https://github.com/CodeCornTech/euro-plate-validator#readme",
+  "scripts": {
+    "build": "rm -rf dist && tsc && node ./scripts/build-cjs.js && node ./scripts/postbuild-nocheck.js",
+    "prepublishOnly": "npm run build",
+    "test": "node -e \"import('./dist/index.js').then(m=>console.log(m.validatePlate('AB 123 CD',['IT'])))\"",
+    "cli-test": "node ./bin/cli.mjs \"AB 123 CD\" --countries IT --type car --pretty"
+  },
+  "keywords": [
+    "license-plate",
+    "validator",
+    "regex",
+    "europe",
+    "anpr",
+    "vehicle",
+    "car",
+    "nodejs",
+    "typescript",
+    "php",
+    "italy",
+    "germany",
+    "france",
+    "spain",
+    "uk",
+    "poland",
+    "netherlands",
+    "belgium",
+    "scandinavia",
+    "balkans",
+    "ukraine"
+  ],
+  "author": "",
+  "license": "MIT",
   "devDependencies": {
+    "types": "0.1.1",
     "typescript": "^5.9.3"
   }
 }

@@ -1,2 +1,10 @@
-# Auto detect text files and perform LF normalization
+# Auto LF normalization
 * text=auto
+
+# Treat TypeScript and JS as text
+*.ts text
+*.js text
+*.mjs text
+
+# Mark generated files as linguist-vendored
+dist/* linguist-vendored
