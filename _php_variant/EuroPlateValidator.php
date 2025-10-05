@@ -18,9 +18,12 @@ function europlate_rx_map(): array
             'name' => 'Italy',
             'car' => [
                 '/^(?!EE)[A-HJ-NP-RTV-Z]{2}\s?\d{3}\s?[A-HJ-NP-RTV-Z]{2}$/'
+                #'/^(?!EE)[A-HJ-NP-RTZ]{2}\s?\d{3}\s?[A-HJ-NP-RTZ]{2}$/'
+                #  '/^(?!EE)[A-HJ-NP-RTV-Z]{2}\s?\d{3}\s?[A-HJ-NP-RTV-Z]{2}$/'
             ],
             'motorcycle' => [
-                '/^[A-HJ-NP-RTV-Z]{2}\s?\d{5}$/'
+                '/^[A-HJ-NP-RTZ]{2}\s?\d{5}$/'
+                # '/^[A-HJ-NP-RTV-Z]{2}\s?\d{5}$/'
             ]
         ],
         'UK' => [

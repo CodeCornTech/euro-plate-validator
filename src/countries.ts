@@ -87,9 +87,11 @@ export const RX: Record<CountryKey, CountryDef> = {
     name: "Italy",
     patterns: {
       // Car 1994–today: AA 999 AA (no I O Q U), skip "EE" series
-      car: [{ rx: /^(?!EE)[A-HJ-NP-RTV-Z]{2}\s?\d{3}\s?[A-HJ-NP-RTV-Z]{2}$/ }],
+      car: [{ rx: /^(?!EE)[A-HJ-NPR-TV-Z]{2}\s?\d{3}\s?[A-HJ-NPR-TV-Z]{2}$/ }],
+      //BK 05-10 car: [{ rx: /^(?!EE)[A-HJ-NP-RTZ]{2}\s?\d{3}\s?[A-HJ-NP-RTZ]{2}$/ }],
       // Motorcycle 1999–today: AA 00000
-      motorcycle: [{ rx: /^[A-HJ-NP-RTV-Z]{2}\s?\d{5}$/ }],
+      motorcycle: [{ rx: /^[A-HJ-NP-RTZ]{2}\s?\d{5}$/ }],
+      // BK 05-10 motorcycle: [{ rx: /^[A-HJ-NP-RTZ]{2}\s?\d{5}$/ }],
     },
   },
 
@@ -128,7 +130,6 @@ export const RX: Record<CountryKey, CountryDef> = {
       ],
     },
   },
-
   FR: {
     name: "France",
     patterns: {
@@ -185,7 +186,13 @@ export const RX: Record<CountryKey, CountryDef> = {
   SK: { name: "Slovakia", patterns: { car: [{ rx: /^[A-Z]{2}\s?\d{3,4}[A-Z]{0,2}$/ }] } },
   HU: {
     name: "Hungary",
-    patterns: { car: [{ rx: /^[A-Z]{3}-\d{3}$/ }, { rx: /^[A-Z]{2}\d{2}-[A-Z]{2}$/ }] },
+    patterns: {
+      car: [
+        { rx: /^[A-Z]{3}-\d{3}$/ }, // storico: ABC-123
+        { rx: /^[A-Z]{4}-\d{3}$/ }, // nuovo: 2022→, AAAA-123
+        { rx: /^[A-Z]{2}\d{2}-[A-Z]{2}$/ }, // ampia (legacy/transitorio)
+      ],
+    },
   },
   RO: { name: "Romania", patterns: { car: [{ rx: /^[A-Z]{1,2}\s?\d{2,3}\s?[A-Z]{3}$/ }] } },
   BG: { name: "Bulgaria", patterns: { car: [{ rx: /^[A-Z]{1,2}\s?\d{4}\s?[A-Z]{1,2}$/ }] } },

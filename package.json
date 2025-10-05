@@ -55,7 +55,7 @@
     "README.md"
   ],
   "bin": {
-    "euro-plate-validator": "./dist/cli.mjs"
+    "euro-plate-validator": "dist/cli.mjs"
   },
   "sideEffects": false,
   "publishConfig": {
@@ -77,7 +77,8 @@
     "cli-test": "node ./bin/cli.mjs \"AB 123 CD\" --countries IT --type car --pretty",
     "prepublishOnly": "npm run build",
     "test": "node -e \"import('./dist/index.js').then(m=>console.log(m.validatePlate('AB 123 CD',['IT'])))\"",
-    "test:samples": "npm run build && node ./scripts/test-samples.mjs"
+    "test:samples": "npm run build && node ./scripts/test-samples.mjs",
+    "test:random": "npm run build && node ./scripts/test-random.mjs"
   },
   "devDependencies": {
     "types": "0.1.1",
