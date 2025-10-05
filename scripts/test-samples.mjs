@@ -12,9 +12,9 @@ function t(plate, countries, opts = { vehicleType: "any" }) {
 }
 
 const POS = {
-  IT: ["AB 123 CD", "CN 456 XY", "DL789GH"],                     // car
-  UK: ["AB12 CDE", "A1", "ABC 1234"],                            // car (current + legacy)
-  DE: ["B-MA 1234", "RA-KL 8136", "M-A 1"],                      // car (standard)
+  IT: ["AB 123 CD", "CN 456 XY", "DL789GH", "FR030ST", "FR 030 ST"], // car
+  UK: ["AB12 CDE", "A1", "ABC 1234"], // car (current + legacy)
+  DE: ["B-MA 1234", "RA-KL 8136", "M-A 1"], // car (standard)
   FR: ["AB-123-CD", "CR-001-ZZ", "ZZ-999-AA"],
   ES: ["1234 BBB", "0001 HNP", "4321 ZZZ"],
   PT: ["12-AB-34", "AB-12-34", "12-34-AB"],
@@ -56,19 +56,26 @@ const NEG = [
   { plate: "AB_123_CD", countries: ["FR"] },
 ];
 
-let pass = 0, fail = 0;
+let pass = 0,
+  fail = 0;
 
-function logOk(msg)  { console.log("\x1b[32m%s\x1b[0m", "✔ " + msg); }
-function logErr(msg) { console.error("\x1b[31m%s\x1b[0m", "✘ " + msg); }
+function logOk(msg) {
+  console.log("\x1b[32m%s\x1b[0m", "✔ " + msg);
+}
+function logErr(msg) {
+  console.error("\x1b[31m%s\x1b[0m", "✘ " + msg);
+}
 
 for (const [cc, samples] of Object.entries(POS)) {
   const countries = [cc];
   for (const s of samples) {
     const { res } = t(s, countries);
     if (res.isValid) {
-      pass++; logOk(`${cc} OK: "${s}" → ${JSON.stringify(res.matches)}`);
+      pass++;
+      logOk(`${cc} OK: "${s}" → ${JSON.stringify(res.matches)}`);
     } else {
-      fail++; logErr(`${cc} FAIL(valid): "${s}" → ${JSON.stringify(res)}`);
+      fail++;
+      logErr(`${cc} FAIL(valid): "${s}" → ${JSON.stringify(res)}`);
     }
   }
 }
@@ -76,9 +83,11 @@ for (const [cc, samples] of Object.entries(POS)) {
 for (const n of NEG) {
   const { res } = t(n.plate, n.countries);
   if (!res.isValid) {
-    pass++; logOk(`NEG OK(rejected): "${n.plate}" in ${n.countries.join(",")}`);
+    pass++;
+    logOk(`NEG OK(rejected): "${n.plate}" in ${n.countries.join(",")}`);
   } else {
-    fail++; logErr(`NEG FAIL(should reject): "${n.plate}" matched ${JSON.stringify(res.matches)}`);
+    fail++;
+    logErr(`NEG FAIL(should reject): "${n.plate}" matched ${JSON.stringify(res.matches)}`);
   }
 }
 

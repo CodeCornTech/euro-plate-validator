@@ -1,5 +1,20 @@
-import type { CountryKey, VehicleType, CountryDef } from "./countries.js";
+// src/index.ts
+
+// ⚠️ In file TypeScript, NON usare l'estensione .js per importare moduli TS locali.
+// Usa "./countries" (lascia che TS risolva a .ts nella build, e l’emitter metterà .js in dist)
+
 import { RX, supportedCountries } from "./countries.js";
+import type { CountryKey, VehicleType, CountryDef } from "./countries.js";
+
+// Re-export utili (UNA SOLA VOLTA)
+export { RX, supportedCountries } from "./countries.js";
+export {
+  INPUTMASK_LAYOUTS,
+  DISPLAY_FORMATS,
+  getInputMask,
+  getDisplayFormat,
+} from "./countries.js";
+export type { CountryKey, VehicleType, CountryDef } from "./countries.js";
 
 /** Risultato di un match paese/targa */
 export interface Match {
@@ -21,9 +36,7 @@ export interface ValidateOptions {
   vehicleType?: VehicleType;
 }
 
-/**
- * Normalizza l'input targa: maiuscolo, spazi consolidati, trim.
- */
+/** Normalizza l'input targa: maiuscolo, spazi consolidati, trim. */
 export function normalize(input: string): string {
   return String(input ?? "")
     .toUpperCase()
@@ -31,9 +44,7 @@ export function normalize(input: string): string {
     .trim();
 }
 
-/**
- * Genera i pattern (RegExp) per un dato paese e tipo veicolo.
- */
+/** Genera i pattern (RegExp) per un dato paese e tipo veicolo. */
 function* pickPatternsFor(
   country: CountryKey,
   vehicleType: VehicleType
@@ -50,8 +61,7 @@ function* pickPatternsFor(
 
 /**
  * Valida una targa contro uno o più paesi.
- *
- * @param plate Stringa targa (verrà normalizzata).
+ * @param plate   Stringa targa (verrà normalizzata).
  * @param countries Lista di country code (se assente, controlla tutti i paesi supportati).
  * @param options vehicleType: "car" | "motorcycle" | "any" (default "any").
  */
@@ -97,6 +107,3 @@ export function validatePlate(
     errors: matches.length ? undefined : ["no_match"],
   };
 }
-
-// Re-export utile se vuoi accedere alla mappa/keys
-export { RX, supportedCountries };

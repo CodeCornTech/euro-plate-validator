@@ -39,3 +39,4 @@ pnpm-debug.log*
 .env
 .env.*
 .editorconfig
+_HTML/**

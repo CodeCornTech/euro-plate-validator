@@ -1,34 +1,8 @@
+// src/countries.ts
 /** Tutti i country code supportati (Russia esclusa) */
-export type CountryKey =
-  | "IT"
-  | "UK"
-  | "DE"
-  | "FR"
-  | "ES"
-  | "PT"
-  | "NL"
-  | "BE"
-  | "CH"
-  | "AT"
-  | "IE"
-  | "LU"
-  | "DK"
-  | "SE"
-  | "NO"
-  | "FI"
-  | "PL"
-  | "CZ"
-  | "SK"
-  | "HU"
-  | "RO"
-  | "BG"
-  | "SI"
-  | "HR"
-  | "GR"
-  | "LT"
-  | "LV"
-  | "EE"
-  | "UA";
+// prettier-ignore
+export type CountryKey = "IT" | "UK" | "DE" | "FR" | "ES" | "PT" | "NL" | "BE" | "CH" | "AT" | "IE" | "LU" | "DK" | "SE" | "NO" | "FI" | "PL" | "CZ" | "SK" | "HU" | "RO" | "BG" | "SI" | "HR" | "GR" | "LT" | "LV" | "EE" | "UA";
+/* prettier-ignore-end */
 
 /** Tipo veicolo */
 export type VehicleType = "car" | "motorcycle" | "any";
@@ -77,6 +51,65 @@ export const supportedCountries = [
   "EE",
   "UA",
 ] as const satisfies ReadonlyArray<CountryKey>;
+
+// Tipi: solo type, nessuna dipendenza runtime
+type IMOpts = Inputmask.Options;
+
+export interface InputMaskLayout {
+  mask: string | string[];
+  definitions?: IMOpts["definitions"];
+  greedy?: IMOpts["greedy"];
+  keepStatic?: IMOpts["keepStatic"];
+  showMaskOnHover?: IMOpts["showMaskOnHover"];
+  showMaskOnFocus?: IMOpts["showMaskOnFocus"];
+  placeholder?: string;
+}
+
+/** Mappe leggibili per UI/placeholder/doc */
+export const DISPLAY_FORMATS: Partial<Record<CountryKey, string>> = {
+  IT: "AA 999 AA", // (senza I O Q U)
+  FR: "AA-999-AA",
+  ES: "9999 AAA",
+  // DE variabile → niente formato singolo
+};
+
+/** Layout Inputmask per digitazione assistita (coerenti con le regex) */
+export const INPUTMASK_LAYOUTS: Partial<Record<CountryKey, InputMaskLayout>> = {
+  IT: {
+    mask: "HH 999 HH",
+    // H = [A-HJ-NP-RTV-Z] (niente I, O, Q, U)
+    definitions: { H: { validator: "[A-HJ-NP-RTV-Z]", casing: "upper" } },
+    placeholder: "__ ___ __",
+    keepStatic: true,
+    showMaskOnHover: false,
+    showMaskOnFocus: true,
+  },
+  FR: {
+    mask: "AA-999-AA",
+    definitions: { A: { validator: "[A-Z]", casing: "upper" } },
+    placeholder: "__-___-__",
+    keepStatic: true,
+    showMaskOnHover: false,
+    showMaskOnFocus: true,
+  },
+  ES: {
+    mask: "9999 AAA",
+    definitions: { A: { validator: "[A-Z]", casing: "upper" } },
+    placeholder: "____ ___",
+    keepStatic: true,
+    showMaskOnHover: false,
+    showMaskOnFocus: true,
+  },
+  // DE: volutamente senza mask (prefissi variabili: "B A 1", "M AA 1234", ecc.)
+};
+
+/** Helper ergonomici */
+export function getInputMask(country: CountryKey): InputMaskLayout | null {
+  return (INPUTMASK_LAYOUTS as Record<CountryKey, InputMaskLayout | undefined>)[country] ?? null;
+}
+export function getDisplayFormat(country: CountryKey): string | null {
+  return (DISPLAY_FORMATS as Record<CountryKey, string | undefined>)[country] ?? null;
+}
 
 /**
  * Mappa paesi → definizioni con regex.

@@ -8,8 +8,11 @@
     "outDir": "./dist",
     "strict": true,
     "skipLibCheck": true,
-    "checkJs": false
+    "checkJs": false,
+    //"types": ["@types/inputmask"],  "./node_modules",
+    "typeRoots": ["./types", "./node_modules/@types"]
   },
-  "include": ["src"],
-  "exclude": ["node_modules", "_php_variant/**", "bin/**", "dist/**", "**/*.test.ts"]
+
+  "include": ["src", "types"],
+  "exclude": ["node_modules", "_php_variant/**", "bin/**", "dist/**", "**/*.test.ts", "_HTML/**"]
 }

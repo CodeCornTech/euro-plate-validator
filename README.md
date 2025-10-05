@@ -4,14 +4,22 @@
 > Multi-country regex-based syntax validation for EU/EEA license plates.  
 > Supports Node.js (TypeScript/JavaScript) and PHP implementations.
 
-[![@codecorn/euro-plate-validator](https://img.shields.io/badge/CODECORN-EURO--PLATE--VALIDATOR-green?style=for-the-badge&logo=vercel)](https://www.npmjs.com/package/@codecorn/euro-plate-validator)
+---
 
-[![Downloads](https://img.shields.io/npm/dt/@codecorn/euro-plate-validator?color=blue&label=npm%20downloads)](https://www.npmjs.com/package/@codecorn/euro-plate-validator)
-[![npm version](https://img.shields.io/npm/v/@codecorn/euro-plate-validator?color=brightgreen&logo=npm)](https://www.npmjs.com/package/@codecorn/euro-plate-validator)
-[![GitHub stars](https://img.shields.io/github/stars/CodeCornTech/euro-plate-validator?style=social)](https://github.com/CodeCornTech/euro-plate-validator)
-[![GitHub issues](https://img.shields.io/github/issues/CodeCornTech/euro-plate-validator?color=blue)](https://github.com/CodeCornTech/euro-plate-validator/issues)
-[![Tests](https://github.com/CodeCornTech/euro-plate-validator/actions/workflows/test.yml/badge.svg)](https://github.com/CodeCornTech/euro-plate-validator/actions/workflows/test.yml)
-[![MIT License](https://img.shields.io/github/license/CodeCornTech/euro-plate-validator)](LICENSE)
+[![@codecorn/euro-plate-validator](https://img.shields.io/badge/CODECORN-EURO--PLATE--VALIDATOR-green?style=for-the-badge&logo=vercel)](https://www.npmjs.com/package/@codecorn/euro-plate-validator)
+[![npm](https://img.shields.io/npm/v/@codecorn/euro-plate-validator?logo=npm&label=version&style=for-the-badge)](https://www.npmjs.com/package/@codecorn/euro-plate-validator)
+[![downloads](https://img.shields.io/npm/dm/@codecorn/euro-plate-validator?logo=npm&label=downloads&style=for-the-badge)](https://www.npmjs.com/package/@codecorn/euro-plate-validator)
+[![jsDelivr](https://img.shields.io/jsdelivr/npm/hm/@codecorn/euro-plate-validator?label=jsDelivr%20hits&style=for-the-badge)](https://www.jsdelivr.com/package/npm/@codecorn/euro-plate-validator)
+[![GitHub stars](https://img.shields.io/github/stars/CodeCornTech/euro-plate-validator?style=for-the-badge&logo=github)](https://github.com/CodeCornTech/euro-plate-validator)
+
+[![CI Tests](https://github.com/CodeCornTech/euro-plate-validator/actions/workflows/test.yml/badge.svg)](https://github.com/CodeCornTech/euro-plate-validator/actions/workflows/test.yml)
+[![issues](https://img.shields.io/github/issues/CodeCornTech/euro-plate-validator?label=issues)](https://github.com/CodeCornTech/euro-plate-validator/issues)
+[![min](https://img.shields.io/bundlephobia/min/@codecorn/euro-plate-validator?label=min)](https://bundlephobia.com/package/@codecorn/euro-plate-validator)
+[![minzip](https://img.shields.io/bundlephobia/minzip/@codecorn/euro-plate-validator?label=minzip)](https://bundlephobia.com/package/@codecorn/euro-plate-validator)
+[![Types](https://img.shields.io/badge/TypeScript-types-blue?logo=typescript)](./dist/index.d.ts)
+![module](https://img.shields.io/badge/module-ESM-brightgreen)
+![cdn](https://img.shields.io/badge/cdn-IIFE-brightgreen)
+[![License](https://img.shields.io/badge/license-MIT-informational)](LICENSE)
 
 ---
 
@@ -22,6 +30,24 @@
 - 🔠 Normalizes input (spaces, hyphens)
 - 🖥 Available for **Node.js/TypeScript** and **PHP**
 - 📦 Ready to publish on **npm**
+
+---
+
+## CDN quick links
+
+> Usa URL **versionati** per evitare cache vecchie del CDN. Sostituisci `1.0.5` con l’ultima.
+
+- **ESM (browser)**
+
+  - jsDelivr: `https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.5/dist/browser/index.esm.min.js`
+  - UNPKG: `https://unpkg.com/@codecorn/euro-plate-validator@1.0.5/dist/browser/index.esm.min.js`
+
+- **IIFE (global `window.EuroPlate`)**
+  - jsDelivr: `https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.5/dist/browser/index.iife.min.js`
+  - UNPKG: `https://unpkg.com/@codecorn/euro-plate-validator@1.0.5/dist/browser/index.iife.min.js`
+
+<sub>Se vedi file non aggiornati, forza il purge:  
+`https://purge.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.5/dist/browser/index.iife.min.js`</sub>
 
 ---
 
