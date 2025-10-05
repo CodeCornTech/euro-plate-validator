@@ -109,7 +109,23 @@ export const RX: Record<CountryKey, CountryDef> = {
   DE: {
     name: "Germany",
     patterns: {
-      car: [{ rx: /^[A-Z]{1,3}-[A-Z]{1,2}\s?\d{1,4}$/ }],
+      car: [
+        // Standard: prefisso regionale 1–3 lettere + '-' + 1–2 lettere + 1–4 cifre
+        // Nota: sui prefissi compaiono anche umlaut (ÄÖÜ); li ammettiamo.
+        { rx: /^[A-ZÄÖÜ]{1,3}-[A-Z]{1,2}\s?\d{1,4}$/ },
+
+        // Ente pubblico / senza serie lettere a destra delle targhette:
+        // prefisso 1–3 lettere + '-' + 1–4 cifre
+        { rx: /^[A-ZÄÖÜ]{1,3}-\d{1,4}$/ },
+
+        // Targhe “speciali” pratiche e frequenti:
+        // 06 = targhe prova/officina; 07 = storiche (Händler/Oldtimer)
+        { rx: /^[A-ZÄÖÜ]{1,3}-06\s?\d{1,4}$/ },
+        { rx: /^[A-ZÄÖÜ]{1,3}-07\s?\d{1,4}$/ },
+
+        // Bundeswehr (militari): "Y-123 456" (spazio opzionale). Cifre in 2 blocchi (1–3 + 1–3).
+        { rx: /^Y-\d{1,3}\s?\d{1,3}$/ },
+      ],
     },
   },
 
