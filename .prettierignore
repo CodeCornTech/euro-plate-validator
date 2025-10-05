@@ -1,0 +1,14 @@
+# comuni
+node_modules
+.git
+#.vscode
+dist
+build
+coverage
+.tmp
+.temp
+.DS_Store
+
+# file/dir HTML di test
+_HTML/assets/vendor
+*.min.*

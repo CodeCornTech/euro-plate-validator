@@ -72,15 +72,21 @@
   "license": "MIT",
   "author": "Federico Girolami <f.girolami@codecorn.it|https://codecorn.it> (@fgirolami29|@CodeCornTech)",
   "scripts": {
+    "clean": "rimraf dist",
     "build": "rm -rf dist && tsc && node ./scripts/build-cjs.js && node ./scripts/postbuild-nocheck.js && node ./scripts/copy-cli.js && npm run build:browser && node ./scripts/postbuild-nocheck.js",
     "build:browser": "node ./scripts/build-browser.mjs",
     "cli-test": "node ./bin/cli.mjs \"AB 123 CD\" --countries IT --type car --pretty",
     "prepublishOnly": "npm run build",
     "test": "node -e \"import('./dist/index.js').then(m=>console.log(m.validatePlate('AB 123 CD',['IT'])))\"",
     "test:samples": "npm run build && node ./scripts/test-samples.mjs",
-    "test:random": "npm run build && node ./scripts/test-random.mjs"
+    "test:random": "npm run build && node ./scripts/test-random.mjs",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "devDependencies": {
+    "eslint-config-prettier": "10.1.8",
+    "eslint-plugin-prettier": "5.5.4",
+    "prettier": "3.6.2",
     "types": "0.1.1",
     "typescript": "^5.9.3"
   },

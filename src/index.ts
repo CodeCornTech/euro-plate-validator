@@ -5,16 +5,18 @@
 
 import { RX, supportedCountries } from "./countries.js";
 import type { CountryKey, VehicleType, CountryDef } from "./countries.js";
-
-// Re-export utili (UNA SOLA VOLTA)
-export { RX, supportedCountries } from "./countries.js";
-export {
-  INPUTMASK_LAYOUTS,
-  DISPLAY_FORMATS,
-  getInputMask,
-  getDisplayFormat,
-} from "./countries.js";
 export type { CountryKey, VehicleType, CountryDef } from "./countries.js";
+
+// // Re-export utili (UNA SOLA VOLTA)
+// export { RX, supportedCountries } from "./countries.js";
+// export {
+//   INPUTMASK_LAYOUTS,
+//   DISPLAY_FORMATS,
+//   getInputMask,
+//   getDisplayFormat,
+// } from "./countries.js";
+
+export * from "./countries.js";
 
 /** Risultato di un match paese/targa */
 export interface Match {

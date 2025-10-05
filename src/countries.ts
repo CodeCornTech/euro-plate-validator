@@ -1,11 +1,77 @@
 // src/countries.ts
-/** Tutti i country code supportati (Russia esclusa) */
+
 // prettier-ignore
+/** Tutti i country code supportati (Russia esclusa) */
 export type CountryKey = "IT" | "UK" | "DE" | "FR" | "ES" | "PT" | "NL" | "BE" | "CH" | "AT" | "IE" | "LU" | "DK" | "SE" | "NO" | "FI" | "PL" | "CZ" | "SK" | "HU" | "RO" | "BG" | "SI" | "HR" | "GR" | "LT" | "LV" | "EE" | "UA";
-/* prettier-ignore-end */
 
 /** Tipo veicolo */
 export type VehicleType = "car" | "motorcycle" | "any";
+
+// prettier-ignore
+/** Lista di paesi supportati (const + tipizzato) */
+export const supportedCountries = [
+  "IT", "UK", "DE", "FR", "ES", "PT", "NL", "BE", "CH", "AT", "IE", "LU", "DK", "SE", "NO", "FI", "PL", "CZ", "SK", "HU", "RO", "BG", "SI", "HR", "GR", "LT", "LV", "EE", "UA",
+] as const satisfies ReadonlyArray<CountryKey>;
+
+// prettier-ignore
+export const FLAG_MAP = {
+  IT:"it", UK:"gb", DE:"de", FR:"fr", ES:"es", PT:"pt", NL:"nl", BE:"be", CH:"ch", AT:"at", IE:"ie", LU:"lu",
+  DK:"dk", SE:"se", NO:"no", FI:"fi", PL:"pl", CZ:"cz", SK:"sk", HU:"hu", RO:"ro", BG:"bg", SI:"si", HR:"hr",
+  GR:"gr", LT:"lt", LV:"lv", EE:"ee", UA:"ua"
+} as const;
+
+// prettier-ignore
+export const COUNTRY_NAMES = {
+  IT:"Italy", UK:"United Kingdom", DE:"Germany", FR:"France", ES:"Spain", PT:"Portugal", NL:"Netherlands",
+  BE:"Belgium", CH:"Switzerland", AT:"Austria", IE:"Ireland", LU:"Luxembourg", DK:"Denmark", SE:"Sweden",
+  NO:"Norway", FI:"Finland", PL:"Poland", CZ:"Czechia", SK:"Slovakia", HU:"Hungary", RO:"Romania", BG:"Bulgaria",
+  SI:"Slovenia", HR:"Croatia", GR:"Greece", LT:"Lithuania", LV:"Latvia", EE:"Estonia", UA:"Ukraine"
+} as const;
+
+export type CountryCode = keyof typeof FLAG_MAP;
+
+/**
+ * Normalizes some real-world quirks:
+ * - GB ⇢ UK (ISO alpha-2 is GB; plates often use UK). Your map uses "UK", so we normalize to that.
+ */
+export function normalizeCode(code: string): CountryCode | undefined {
+  const up = code.trim().toUpperCase();
+  const alias = up === "GB" ? "UK" : up;
+  return alias in FLAG_MAP ? (alias as CountryCode) : undefined;
+}
+
+export function getFlagSlug(code: string): string | undefined {
+  const cc = normalizeCode(code);
+  return cc ? FLAG_MAP[cc] : undefined;
+}
+
+export function getCountryName(code: string): string | undefined {
+  const cc = normalizeCode(code);
+  return cc ? COUNTRY_NAMES[cc] : undefined;
+}
+
+export const COUNTRY_CODES = Object.keys(FLAG_MAP) as CountryCode[];
+
+export type CountryInfo = {
+  code: CountryCode;
+  flag: (typeof FLAG_MAP)[CountryCode];
+  name: (typeof COUNTRY_NAMES)[CountryCode];
+};
+
+export const COUNTRIES: CountryInfo[] = COUNTRY_CODES.map((c) => ({
+  code: c as CountryCode,
+  flag: FLAG_MAP[c as CountryCode],
+  name: COUNTRY_NAMES[c as CountryCode],
+}));
+
+// Reverse lookups (by flag slug or name)
+export const FLAG_TO_CODE = Object.fromEntries(
+  COUNTRY_CODES.map((c) => [FLAG_MAP[c], c])
+) as Record<(typeof FLAG_MAP)[CountryCode], CountryCode>;
+
+export const NAME_TO_CODE = Object.fromEntries(
+  COUNTRY_CODES.map((c) => [COUNTRY_NAMES[c], c])
+) as Record<(typeof COUNTRY_NAMES)[CountryCode], CountryCode>;
 
 /** Entry di pattern per tipo veicolo */
 export interface PatternSet {
@@ -18,39 +84,6 @@ export interface CountryDef {
   name: string;
   patterns: PatternSet;
 }
-
-/** Lista di paesi supportati (const + tipizzato) */
-export const supportedCountries = [
-  "IT",
-  "UK",
-  "DE",
-  "FR",
-  "ES",
-  "PT",
-  "NL",
-  "BE",
-  "CH",
-  "AT",
-  "IE",
-  "LU",
-  "DK",
-  "SE",
-  "NO",
-  "FI",
-  "PL",
-  "CZ",
-  "SK",
-  "HU",
-  "RO",
-  "BG",
-  "SI",
-  "HR",
-  "GR",
-  "LT",
-  "LV",
-  "EE",
-  "UA",
-] as const satisfies ReadonlyArray<CountryKey>;
 
 // Tipi: solo type, nessuna dipendenza runtime
 type IMOpts = Inputmask.Options;
@@ -70,13 +103,15 @@ export const DISPLAY_FORMATS: Partial<Record<CountryKey, string>> = {
   IT: "AA 999 AA", // (senza I O Q U)
   FR: "AA-999-AA",
   ES: "9999 AAA",
+  NL: "AA-999-AA | 99-AAA-9 | A-999-AA | AA-999-A | 9-AA-999",
+
   // DE variabile → niente formato singolo
 };
 
 /** Layout Inputmask per digitazione assistita (coerenti con le regex) */
 export const INPUTMASK_LAYOUTS: Partial<Record<CountryKey, InputMaskLayout>> = {
   IT: {
-    mask: "HH 999 HH",
+    mask: "AA 999 AA",
     // H = [A-HJ-NP-RTV-Z] (niente I, O, Q, U)
     definitions: { H: { validator: "[A-HJ-NP-RTV-Z]", casing: "upper" } },
     placeholder: "__ ___ __",
@@ -101,6 +136,25 @@ export const INPUTMASK_LAYOUTS: Partial<Record<CountryKey, InputMaskLayout>> = {
     showMaskOnFocus: true,
   },
   // DE: volutamente senza mask (prefissi variabili: "B A 1", "M AA 1234", ecc.)
+  NL: {
+    mask: [
+      "LL-999-LL",
+      "99-LLL-9",
+      "L-999-LL",
+      "LL-999-L",
+      "9-LL-999",
+      "LL-LL-99",
+      "99-LL-LL",
+      "LLL-99-L",
+    ],
+    definitions: {
+      L: { validator: "[BDFGHJKLNPRSTVXYZ]", casing: "upper" },
+    },
+    placeholder: "", // no underscore
+    keepStatic: true,
+    showMaskOnHover: false,
+    showMaskOnFocus: false,
+  },
 };
 
 /** Helper ergonomici */
@@ -195,16 +249,52 @@ export const RX: Record<CountryKey, CountryDef> = {
     },
   },
 
+  // NL: { 05-10-2025
+  //   name: "Netherlands",
+  //   patterns: {
+  //     car: [
+  //       { rx: /^[A-Z]{2}-\d{3}-[A-Z]{2}$/ },
+  //       { rx: /^\d{2}-[A-Z]{3}-\d$/ },
+  //       { rx: /^\d-[A-Z]{3}-\d{2}$/ },
+  //       { rx: /^[A-Z]{2}-[A-Z]{2}-\d{2}$/ },
+  //       { rx: /^\d{2}-[A-Z]{2}-[A-Z]{2}$/ },
+  //       { rx: /^[A-Z]{3}-\d{2}-[A-Z]$/ },
+  //     ],
+  //   },
+  // },
   NL: {
     name: "Netherlands",
     patterns: {
       car: [
-        { rx: /^[A-Z]{2}-\d{3}-[A-Z]{2}$/ },
-        { rx: /^\d{2}-[A-Z]{3}-\d$/ },
-        { rx: /^\d-[A-Z]{3}-\d{2}$/ },
-        { rx: /^[A-Z]{2}-[A-Z]{2}-\d{2}$/ },
-        { rx: /^\d{2}-[A-Z]{2}-[A-Z]{2}$/ },
-        { rx: /^[A-Z]{3}-\d{2}-[A-Z]$/ },
+        // Sidecodes “storici/moderni” con trattini
+        // AA-123-AA
+        { rx: /^[BDFGHJKLNPRSTVXYZ]{2}-\d{3}-[BDFGHJKLNPRSTVXYZ]{2}$/ },
+        // 12-AAA-1
+        { rx: /^\d{2}-[BDFGHJKLNPRSTVXYZ]{3}-\d$/ },
+        // 1-AAA-12
+        { rx: /^\d-[BDFGHJKLNPRSTVXYZ]{3}-\d{2}$/ },
+        // AA-AA-12
+        { rx: /^[BDFGHJKLNPRSTVXYZ]{2}-[BDFGHJKLNPRSTVXYZ]{2}-\d{2}$/ },
+        // 12-AA-AA
+        { rx: /^\d{2}-[BDFGHJKLNPRSTVXYZ]{2}-[BDFGHJKLNPRSTVXYZ]{2}$/ },
+        // AAA-12-A
+        { rx: /^[BDFGHJKLNPRSTVXYZ]{3}-\d{2}-[BDFGHJKLNPRSTVXYZ]$/ },
+
+        // Nuovi sidecode (dal 2021): A-001-AA, AA-001-A, 0-AA-001
+        { rx: /^[BDFGHJKLNPRSTVXYZ]-\d{3}-[BDFGHJKLNPRSTVXYZ]{2}$/ }, // A-001-AA
+        { rx: /^[BDFGHJKLNPRSTVXYZ]{2}-\d{3}-[BDFGHJKLNPRSTVXYZ]$/ }, // AA-001-A
+        { rx: /^\d-[BDFGHJKLNPRSTVXYZ]{2}-\d{3}$/ }, // 0-AA-001
+
+        // Tollera eventuali spazi al posto dei trattini (import/export/trascrizioni)
+        { rx: /^[BDFGHJKLNPRSTVXYZ]{2}\s\d{3}\s[BDFGHJKLNPRSTVXYZ]{2}$/ },
+        { rx: /^\d{2}\s[BDFGHJKLNPRSTVXYZ]{3}\s\d$/ },
+        { rx: /^\d\s[BDFGHJKLNPRSTVXYZ]{3}\s\d{2}$/ },
+        { rx: /^[BDFGHJKLNPRSTVXYZ]{2}\s[BDFGHJKLNPRSTVXYZ]{2}\s\d{2}$/ },
+        { rx: /^\d{2}\s[BDFGHJKLNPRSTVXYZ]{2}\s[BDFGHJKLNPRSTVXYZ]{2}$/ },
+        { rx: /^[BDFGHJKLNPRSTVXYZ]{3}\s\d{2}\s[BDFGHJKLNPRSTVXYZ]$/ },
+        { rx: /^[BDFGHJKLNPRSTVXYZ]\s\d{3}\s[BDFGHJKLNPRSTVXYZ]{2}$/ },
+        { rx: /^[BDFGHJKLNPRSTVXYZ]{2}\s\d{3}\s[BDFGHJKLNPRSTVXYZ]$/ },
+        { rx: /^\d\s[BDFGHJKLNPRSTVXYZ]{2}\s\d{3}$/ },
       ],
     },
   },
