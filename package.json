@@ -72,11 +72,12 @@
   "license": "MIT",
   "author": "Federico Girolami <f.girolami@codecorn.it|https://codecorn.it> (@fgirolami29|@CodeCornTech)",
   "scripts": {
-    "build": "rm -rf dist && tsc && node ./scripts/build-cjs.js && node ./scripts/postbuild-nocheck.js && node ./scripts/copy-cli.js && npm run build:browser",
+    "build": "rm -rf dist && tsc && node ./scripts/build-cjs.js && node ./scripts/postbuild-nocheck.js && node ./scripts/copy-cli.js && npm run build:browser && node ./scripts/postbuild-nocheck.js",
     "build:browser": "node ./scripts/build-browser.mjs",
     "cli-test": "node ./bin/cli.mjs \"AB 123 CD\" --countries IT --type car --pretty",
     "prepublishOnly": "npm run build",
-    "test": "node -e \"import('./dist/index.js').then(m=>console.log(m.validatePlate('AB 123 CD',['IT'])))\""
+    "test": "node -e \"import('./dist/index.js').then(m=>console.log(m.validatePlate('AB 123 CD',['IT'])))\"",
+    "test:samples": "npm run build && node ./scripts/test-samples.mjs"
   },
   "devDependencies": {
     "types": "0.1.1",
