@@ -1,4 +1,13 @@
 // src/index.ts
+// @ts-check  // (se vuoi anche nei sorgenti)
+
+/** @typedef {import("./countries.js").CountryKey} CountryKey */
+/** @typedef {import("./countries.js").CountryDef} CountryDef */
+/** @typedef {"car"|"motorcycle"|"any"} VehicleType */
+/** @typedef {{ country: CountryKey; name: string }} ValidateMatch */
+/** @typedef {{ vehicleType?: VehicleType }} ValidateOptions */
+/** @typedef {{ isValid: boolean; matches: ValidateMatch[]; checked: CountryKey[]; errors?: string[] }} ValidateResult */
+
 import { RX, supportedCountries } from "./countries.js";
 import type { CountryKey, VehicleType, CountryDef } from "./countries.js";
 export type { CountryKey, VehicleType, CountryDef } from "./countries.js";
@@ -10,21 +19,26 @@ export interface Match {
   name: string;
 }
 
-/** Esito della validazione */
-export interface ValidationResult {
+export interface ValidateOptions {
+  vehicleType?: VehicleType;
+}
+
+export interface ValidateMatch {
+  country: CountryKey;
+  name: string;
+}
+
+export interface ValidateResult {
   isValid: boolean;
-  matches: Match[];
+  matches: ValidateMatch[];
   checked: CountryKey[];
   errors?: string[];
 }
 
-/** Opzioni runtime */
-export interface ValidateOptions {
-  /** "car" | "motorcycle" | "any" (default: "any") */
-  vehicleType?: VehicleType;
-}
-
-/** Normalizza l'input targa: maiuscolo, spazi consolidati, trim. */
+/** Normalizza l'input targa: maiuscolo, spazi consolidati, trim.
+ *  @param {string} input
+ *  @returns {string}
+ */
 export function normalize(input: string): string {
   return String(input ?? "")
     .toUpperCase()
@@ -32,13 +46,13 @@ export function normalize(input: string): string {
     .trim();
 }
 
-/** Genera i pattern (RegExp) per un dato paese e tipo veicolo. */
-function* pickPatternsFor(
-  country: CountryKey,
-  vehicleType: VehicleType
-): Generator<RegExp, void, unknown> {
+/** Genera i pattern (RegExp) per un dato paese e tipo veicolo.
+ *  @param {CountryKey} country
+ *  @param {VehicleType} vehicleType
+ *  @returns {Generator<RegExp>}
+ */
+function* pickPatternsFor(country: CountryKey, vehicleType: VehicleType): Generator<RegExp> {
   const set: CountryDef["patterns"] = RX[country].patterns;
-
   if (vehicleType === "car" || vehicleType === "any") {
     for (const p of set.car ?? []) yield p.rx;
   }
@@ -47,38 +61,34 @@ function* pickPatternsFor(
   }
 }
 
-/**
- * Valida una targa contro uno o più paesi.
- * @param plate   Stringa targa (verrà normalizzata).
- * @param countries Lista di country code (se assente, controlla tutti i paesi supportati).
- * @param options vehicleType: "car" | "motorcycle" | "any" (default "any").
+/** Valida una targa contro uno o più paesi.
+ *  @param {string} plate
+ *  @param {readonly CountryKey[]=} countries  Elenco di paesi da controllare (default: tutti)
+ *  @param {ValidateOptions=} options          { vehicleType?: "car"|"motorcycle"|"any" } (default "any")
+ *  @returns {ValidateResult}
  */
 export function validatePlate(
   plate: string,
   countries?: readonly CountryKey[],
   options: ValidateOptions = {}
-): ValidationResult {
+): ValidateResult {
   const vehicleType: VehicleType = options.vehicleType ?? "any";
   const norm = normalize(plate);
 
+  // Normalizza l’elenco dei paesi in un array mutabile locale, tipizzato
   const picks: CountryKey[] =
     countries && countries.length
-      ? countries.filter((c): c is CountryKey => c in RX)
+      ? (countries.filter((c): c is CountryKey => c in RX) as CountryKey[])
       : [...supportedCountries];
 
   if (!norm) {
     return { isValid: false, matches: [], checked: picks, errors: ["empty"] };
   }
   if (!picks.length) {
-    return {
-      isValid: false,
-      matches: [],
-      checked: [],
-      errors: ["no_countries_selected"],
-    };
+    return { isValid: false, matches: [], checked: [], errors: ["no_countries_selected"] };
   }
 
-  const matches: Match[] = [];
+  const matches: ValidateMatch[] = [];
   for (const c of picks) {
     for (const rx of pickPatternsFor(c, vehicleType)) {
       if (rx.test(norm)) {

@@ -11,7 +11,10 @@
     "outDir": "./dist",
     "skipLibCheck": true,
     "checkJs": false,
-    "typeRoots": ["./types", "./node_modules/@types"]
+    "typeRoots": ["./types", "./node_modules/@types"],
+    "importHelpers": true,
+    "removeComments": false
+
   },
   "include": ["src", "types"],
   "exclude": ["node_modules", "_php_variant/**", "bin/**", "dist/**", "**/*.test.ts", "_HTML/**"]
