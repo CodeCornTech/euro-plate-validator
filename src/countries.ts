@@ -89,8 +89,9 @@ export const RX: Record<CountryKey, CountryDef> = {
       // Car 1994–today: AA 999 AA (no I O Q U), skip "EE" series
       car: [{ rx: /^(?!EE)[A-HJ-NPR-TV-Z]{2}\s?\d{3}\s?[A-HJ-NPR-TV-Z]{2}$/ }],
       //BK 05-10 car: [{ rx: /^(?!EE)[A-HJ-NP-RTZ]{2}\s?\d{3}\s?[A-HJ-NP-RTZ]{2}$/ }],
-      // Motorcycle 1999–today: AA 00000
-      motorcycle: [{ rx: /^[A-HJ-NP-RTZ]{2}\s?\d{5}$/ }],
+      // Motorcycle 1999–oggi: AA 00000 (no I O Q U)
+      motorcycle: [{ rx: /^[A-HJ-NPR-TV-Z]{2}\s?\d{5}$/ }],
+      //motorcycle: [{ rx: /^[A-HJ-NP-RTZ]{2}\s?\d{5}$/ }],
       // BK 05-10 motorcycle: [{ rx: /^[A-HJ-NP-RTZ]{2}\s?\d{5}$/ }],
     },
   },
@@ -130,20 +131,26 @@ export const RX: Record<CountryKey, CountryDef> = {
       ],
     },
   },
+
+  // FR: SOLO trattini, niente spazi
   FR: {
     name: "France",
     patterns: {
+      // AA-000-AA (nessuno spazio)
       car: [{ rx: /^[A-Z]{2}-\d{3}-[A-Z]{2}$/ }],
+      //    car: [{ rx: /^[A-Z]{2}[-]\d{3}[-][A-Z]{2}$/ }],
+      //car: [{ rx: /^[A-Z]{2}\-\d{3}\-[A-Z]{2}$/ }],
     },
   },
 
+  // ES: lascia così (già corretta)
   ES: {
     name: "Spain",
     patterns: {
+      // 0000 BBB, lettere da consonanti senza A,E,I,Ñ,O,Q,U
       car: [{ rx: /^\d{4}\s?[BCDFGHJKLMNPRSTVWXYZ]{3}$/ }],
     },
   },
-
   PT: {
     name: "Portugal",
     patterns: {
