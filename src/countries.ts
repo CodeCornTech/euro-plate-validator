@@ -104,7 +104,8 @@ export const DISPLAY_FORMATS: Partial<Record<CountryKey, string>> = {
   FR: "AA-999-AA",
   ES: "9999 AAA",
   NL: "AA-999-AA | 99-AAA-9 | A-999-AA | AA-999-A | 9-AA-999",
-
+  RO: "BB 99 AAA / B 999 AAA",
+  SK: "AA-999 AA",
   // DE variabile → niente formato singolo
 };
 
@@ -151,6 +152,31 @@ export const INPUTMASK_LAYOUTS: Partial<Record<CountryKey, InputMaskLayout>> = {
       L: { validator: "[BDFGHJKLNPRSTVXYZ]", casing: "upper" },
     },
     placeholder: "", // no underscore
+    keepStatic: true,
+    showMaskOnHover: false,
+    showMaskOnFocus: false,
+  },
+  RO: {
+    mask: [
+      "AA 99 AAA",
+      "AA 999 AAA",
+      "A 99 AAA", // B 99 AAA
+      "A 999 AAA", // B 999 AAA
+    ],
+    definitions: {
+      A: { validator: "[A-Z]", casing: "upper" },
+    },
+    placeholder: "",
+    keepStatic: true,
+    showMaskOnHover: false,
+    showMaskOnFocus: false,
+  },
+  SK: {
+    mask: ["AA-999 AA", "AA999AA", "AA 999 AA"],
+    definitions: {
+      A: { validator: "[A-Z]", casing: "upper" },
+    },
+    placeholder: "",
     keepStatic: true,
     showMaskOnHover: false,
     showMaskOnFocus: false,
@@ -249,19 +275,6 @@ export const RX: Record<CountryKey, CountryDef> = {
     },
   },
 
-  // NL: { 05-10-2025
-  //   name: "Netherlands",
-  //   patterns: {
-  //     car: [
-  //       { rx: /^[A-Z]{2}-\d{3}-[A-Z]{2}$/ },
-  //       { rx: /^\d{2}-[A-Z]{3}-\d$/ },
-  //       { rx: /^\d-[A-Z]{3}-\d{2}$/ },
-  //       { rx: /^[A-Z]{2}-[A-Z]{2}-\d{2}$/ },
-  //       { rx: /^\d{2}-[A-Z]{2}-[A-Z]{2}$/ },
-  //       { rx: /^[A-Z]{3}-\d{2}-[A-Z]$/ },
-  //     ],
-  //   },
-  // },
   NL: {
     name: "Netherlands",
     patterns: {
@@ -313,7 +326,6 @@ export const RX: Record<CountryKey, CountryDef> = {
   FI: { name: "Finland", patterns: { car: [{ rx: /^[A-Z]{3}-\d{3}$/ }] } },
   PL: { name: "Poland", patterns: { car: [{ rx: /^[A-Z]{1,3}\s?[A-Z0-9]{4,5}$/ }] } },
   CZ: { name: "Czechia", patterns: { car: [{ rx: /^\d[A-Z]{2}\s?\d{4}$/ }] } },
-  SK: { name: "Slovakia", patterns: { car: [{ rx: /^[A-Z]{2}\s?\d{3,4}[A-Z]{0,2}$/ }] } },
   HU: {
     name: "Hungary",
     patterns: {
@@ -324,7 +336,30 @@ export const RX: Record<CountryKey, CountryDef> = {
       ],
     },
   },
-  RO: { name: "Romania", patterns: { car: [{ rx: /^[A-Z]{1,2}\s?\d{2,3}\s?[A-Z]{3}$/ }] } },
+
+  // 7-10 RO: { name: "Romania", patterns: { car: [{ rx: /^[A-Z]{1,2}\s?\d{2,3}\s?[A-Z]{3}$/ }] } },
+  RO: {
+    name: "Romania",
+    patterns: {
+      car: [
+        // Regola generale: 2 lettere di contea + 2/3 cifre + 3 lettere
+        { rx: /^[A-Z]{2}\s?\d{2,3}\s?[A-Z]{3}$/ },
+        // Eccezione capitale: 1 lettera (solo B) + 2/3 cifre + 3 lettere
+        { rx: /^B\s?\d{2,3}\s?[A-Z]{3}$/ },
+      ],
+    },
+  },
+
+  //SK: { name: "Slovakia", patterns: { car: [{ rx: /^[A-Z]{2}\s?\d{3,4}[A-Z]{0,2}$/ }] } },
+  SK: {
+    name: "Slovakia",
+    patterns: {
+      car: [
+        // Formato tipico: DD-999LL (con o senza trattino/spazio)
+        { rx: /^[A-Z]{2}[-\s]?\d{3}[A-Z]{2}$/ },
+      ],
+    },
+  },
   BG: { name: "Bulgaria", patterns: { car: [{ rx: /^[A-Z]{1,2}\s?\d{4}\s?[A-Z]{1,2}$/ }] } },
   SI: { name: "Slovenia", patterns: { car: [{ rx: /^[A-Z]{2}-\d{3,4}-[A-Z]{1,2}$/ }] } },
   HR: { name: "Croatia", patterns: { car: [{ rx: /^[A-Z]{2}\s?\d{3,4}-[A-Z]{2}$/ }] } },

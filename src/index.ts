@@ -13,6 +13,8 @@ import type { CountryKey, VehicleType, CountryDef } from "./countries.js";
 export type { CountryKey, VehicleType, CountryDef } from "./countries.js";
 export * from "./countries.js";
 
+// export { createEuroPlate } from "./client/europlate.client.js";
+
 /** Risultato di un match paese/targa */
 export interface Match {
   country: CountryKey;

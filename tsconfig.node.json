@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+
+    "types": ["node"],           // ⬅️ importa i tipi Node globali (console, setTimeout, ecc.)
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true
+  },
+  "include": ["src/**/*.ts", "types/**/*.ts"],
+  "exclude": ["src/client/**", "dist", "dist-types", "dist-node", "node_modules"]
+}

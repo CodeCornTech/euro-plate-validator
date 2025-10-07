@@ -28,38 +28,46 @@
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "types": "./dist-types/index.d.ts",
   "typesVersions": {
     "*": {
       "*": [
-        "dist/index.d.ts"
+        "dist-types/*.d.ts",
+        "dist-types/*/index.d.ts"
       ]
     }
   },
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "browser": {
-        "import": "./dist/browser/index.esm.js",
-        "default": "./dist/browser/index.esm.js"
-      },
+      "types": "./dist-types/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs",
       "default": "./dist/index.js"
+    },
+    "./client": {
+      "types": "./dist-types/client/europlate.client.d.ts",
+      "import": "./dist/client/europlate.client.mjs",
+      "require": "./dist/client/europlate.client.cjs"
+    },
+    "./browser": {
+      "import": "./dist/browser/index.esm.js",
+      "default": "./dist/browser/index.esm.js"
     },
     "./package.json": "./package.json"
   },
   "browser": "dist/browser/index.esm.js",
   "unpkg": "dist/browser/index.iife.min.js",
   "jsdelivr": "dist/browser/index.iife.min.js",
+  "bin": {
+    "euro-plate-validator": "bin/cli.mjs"
+  },
   "files": [
     "dist/",
+    "dist-types/",
+    "bin/",
     "LICENSE",
     "README.md"
   ],
-  "bin": {
-    "euro-plate-validator": "dist/cli.mjs"
-  },
   "sideEffects": false,
   "publishConfig": {
     "access": "public"
@@ -75,15 +83,22 @@
   "license": "MIT",
   "author": "Federico Girolami <f.girolami@codecorn.it|https://codecorn.it> (@fgirolami29|@CodeCornTech)",
   "scripts": {
-    "clean": "rimraf dist",
-    "build:types": "tsc --emitDeclarationOnly",
+    "clean": "rimraf dist dist-types",
+    "typecheck:bundle": "tsc -p tsconfig.bundle.json --noEmit",
+    "typecheck:node": "tsc -p tsconfig.node.json --noEmit",
+    "typecheck:node:files": "tsc -p tsconfig.node.json --noEmit --listFiles",
+    "build:types": "tsc -p tsconfig.bundle.json --emitDeclarationOnly --declaration --outDir dist-types",
     "build:esm": "esbuild src/index.ts --bundle --platform=node --format=esm --sourcemap --outfile=dist/index.js",
     "build:cjs": "esbuild src/index.ts --bundle --platform=node --format=cjs --sourcemap --outfile=dist/index.cjs",
     "build:browser:esm": "esbuild src/index.ts --bundle --platform=browser --format=esm --sourcemap --outfile=dist/browser/index.esm.js",
     "build:browser:iife": "esbuild src/index.ts --bundle --platform=browser --format=iife --global-name=EuroPlateValidator --minify --outfile=dist/browser/index.iife.min.js",
+    "build:client:esm": "esbuild src/client/europlate.client.ts --bundle --platform=browser --format=esm --sourcemap --outfile=dist/client/europlate.client.mjs",
+    "build:client:cjs": "esbuild src/client/europlate.client.ts --bundle --platform=node --format=cjs --sourcemap --outfile=dist/client/europlate.client.cjs",
+    "build:cli": "esbuild src/cli.ts --bundle --platform=node --format=esm --sourcemap --outfile=dist/cli.mjs",
     "build:browser": "npm run build:browser:esm && npm run build:browser:iife",
+    "build:client": "npm run build:client:esm && npm run build:client:cjs",
     "postbuild:nocheck": "node ./scripts/postbuild-nocheck.js",
-    "build": "npm run clean && tsc --emitDeclarationOnly && npm run build:esm && npm run build:cjs && npm run build:browser && npm run postbuild:nocheck",
+    "build": "npm run clean && npm run build:types && npm run build:esm && npm run build:cjs && npm run build:browser && npm run build:client && npm run postbuild:nocheck",
     "prepublishOnly": "npm run build",
     "cli-test": "node ./bin/cli.mjs \"AB 123 CD\" --countries IT --type car --pretty",
     "test": "node -e \"import('./dist/index.js').then(m=>console.log(m.validatePlate('AB 123 CD',['IT'])))\"",
@@ -93,13 +108,13 @@
     "format:check": "prettier --check ."
   },
   "devDependencies": {
+    "@types/node": "24.6.2",
     "esbuild": "0.25.10",
     "eslint-config-prettier": "10.1.8",
     "eslint-plugin-prettier": "5.5.4",
     "prettier": "3.6.2",
     "rimraf": "6.0.1",
     "tslib": "2.8.1",
-    "types": "0.1.1",
     "typescript": "^5.9.3"
   },
   "peerDependencies": {

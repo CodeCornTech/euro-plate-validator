@@ -90,6 +90,36 @@ validatePlate("AA 12345", ["IT"], { vehicleType: "motorcycle" }); // ✅ IT Moto
 validatePlate("AA 12345", ["IT"], { vehicleType: "car" }); // ❌ (no_match)
 ```
 
+### Come si usa il toggle senza toccare il file
+
+* **Abilita da HTML:**
+
+  ```html
+  <script type="module" src="demo.js" data-europlate-debug="1"></script>
+  ```
+* **Oppure runtime:**
+
+  ```js
+  enableEuroPlateDebug(true);   // ON
+  enableEuroPlateDebug(false);  // OFF
+  ```
+
+### Per un logger esterno (opzionale)
+
+```js
+window.EuroPlateLogger = {
+  debug: (...a) => console.debug('[MYLOG]', ...a),
+  info:  (...a) => console.info('[MYLOG]', ...a),
+  warn:  (...a) => console.warn('[MYLOG]', ...a),
+  error: (...a) => console.error('[MYLOG]', ...a),
+  notify: (msg, type='info') => {
+    // integra con Sentry/Toast/Datadog/etc
+  }
+};
+```
+
+Così tieni il codice **pulito**, i log “di sviluppo” sono **a scomparsa** e puoi innestare qualsiasi pipeline di logging quando vuoi, senza toccare il core.
+
 ### PHP
 
 ```php
