@@ -119,7 +119,7 @@
   background-position: center;
   background-size: cover;
   /* EU flag (blu + 12 stelle gialle semplificate) */
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 3 2'><rect width='3' height='2' fill='%23005BBB'/><g fill='%23FFD500' transform='translate(1.5,1)'><g id='s'><circle r='.06' transform='rotate(0) translate(0.7,0)'/></g><use href='%23s' transform='rotate(30)'/><use href='%23s' transform='rotate(60)'/><use href='%23s' transform='rotate(90)'/><use href='%23s' transform='rotate(120)'/><use href='%23s' transform='rotate(150)'/><use href='%23s' transform='rotate(180)'/><use href='%23s' transform='rotate(210)'/><use href='%23s' transform='rotate(240)'/><use href='%23s' transform='rotate(270)'/><use href='%23s' transform='rotate(300)'/><use href='%23s' transform='rotate(330)'/></g></svg>");
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 3 2'><rect width='3' height='2' fill='%23005BBB'/><g fill='%23FFD500' transform='translate(1.5,1)'><g id='s'><circle r='.06' transform='rotate(0) translate(0.7,0)'/></g><use href='%23s' transform='rotate(30)'/><use href='%23s' transform='rotate(60)'/><use href='%23s' transform='rotate(90)'/><use href='%23s' transform='rotate(120)'/><use href='%23s' transform='rotate(150)'/><use href='%23s' transform='rotate(180)'/><use href='%23s' transform='rotate(210)'/><use href='%23s' transform='rotate(240)'/><use href='%23s' transform='rotate(270)'/><use href='%23s' transform='rotate(300)'/><use href='%23s' transform='rotate(330)'/></g></svg>") !important;
 }
 
 .iti__flag-box {
