@@ -16,7 +16,8 @@ export type EuroPlateUI = {
     status?: HTMLElement;
 };
 export type EuroPlateOptions = {
-    input: HTMLInputElement;
+    input?: HTMLInputElement;
+    wrapper?: string | HTMLElement | false;
     ui?: EuroPlateUI;
     allowedCountries?: string[];
     mode?: "AUTO" | string;
@@ -35,6 +36,12 @@ export type EuroPlateOptions = {
         inputmask?: any;
     };
     debug?: boolean;
+    autoLoadDeps?: {
+        inputmask?: boolean;
+    };
+    cdn?: {
+        inputmask?: string;
+    };
     i18n?: I18nCode;
 };
 export type EuroPlateInstance = {

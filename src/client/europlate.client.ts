@@ -31,7 +31,8 @@ export type EuroPlateUI = {
 };
 
 export type EuroPlateOptions = {
-  input: HTMLInputElement; // REQUIRED
+  input?: HTMLInputElement; // era required → ora opzionale (se usi wrapper)
+  wrapper?: string | HTMLElement | false; // 👈 selector, nodo o false (default)
   ui?: EuroPlateUI; // opzionale (UI pronta)
   allowedCountries?: string[]; // default: tutte
   mode?: "AUTO" | string; // default: "AUTO"
@@ -43,6 +44,14 @@ export type EuroPlateOptions = {
   logger?: Logger; // opzionale
   deps?: { inputmask?: any }; // opzionale (se non c’è su window)
   debug?: boolean; // default: false
+  // 👉 Autoload delle dipendenze (true di default)
+  autoLoadDeps?: {
+    inputmask?: boolean; // default true
+  };
+  // 👉 CDN override (se vuoi cambiare l’URL)
+  cdn?: {
+    inputmask?: string; // default jsDelivr UMD
+  };
   i18n?: I18nCode; // <— NEW (default: 'AUTO')
 };
 
@@ -57,7 +66,6 @@ type DictScalarKey = "auto" | "placeholderAuto" | "valid" | "invalid" | "checked
 
 // Nomi paese localizzati (facoltativi per ciascun cc)
 type CountryNameDict = Partial<Record<CountryKey, string>>;
-
 const DICT: Record<
   Lang,
   {
@@ -75,7 +83,37 @@ const DICT: Record<
     valid: "Valida",
     invalid: "Non valida",
     checked: "Controllati",
-    countries: { IT: "Italia", FR: "Francia", DE: "Germania", ES: "Spagna", NL: "Paesi Bassi" },
+    countries: {
+      IT: "Italia",
+      UK: "Regno Unito",
+      DE: "Germania",
+      FR: "Francia",
+      ES: "Spagna",
+      PT: "Portogallo",
+      NL: "Paesi Bassi",
+      BE: "Belgio",
+      CH: "Svizzera",
+      AT: "Austria",
+      IE: "Irlanda",
+      LU: "Lussemburgo",
+      DK: "Danimarca",
+      SE: "Svezia",
+      NO: "Norvegia",
+      FI: "Finlandia",
+      PL: "Polonia",
+      CZ: "Cechia",
+      SK: "Slovacchia",
+      HU: "Ungheria",
+      RO: "Romania",
+      BG: "Bulgaria",
+      SI: "Slovenia",
+      HR: "Croazia",
+      GR: "Grecia",
+      LT: "Lituania",
+      LV: "Lettonia",
+      EE: "Estonia",
+      UA: "Ucraina",
+    },
   },
   en: {
     auto: "Auto (All)",
@@ -83,9 +121,40 @@ const DICT: Record<
     valid: "Valid",
     invalid: "Invalid",
     checked: "Checked",
-    countries: { IT: "Italy", FR: "France", DE: "Germany", ES: "Spain", NL: "Netherlands" },
+    countries: {
+      IT: "Italy",
+      UK: "United Kingdom",
+      DE: "Germany",
+      FR: "France",
+      ES: "Spain",
+      PT: "Portugal",
+      NL: "Netherlands",
+      BE: "Belgium",
+      CH: "Switzerland",
+      AT: "Austria",
+      IE: "Ireland",
+      LU: "Luxembourg",
+      DK: "Denmark",
+      SE: "Sweden",
+      NO: "Norway",
+      FI: "Finland",
+      PL: "Poland",
+      CZ: "Czechia",
+      SK: "Slovakia",
+      HU: "Hungary",
+      RO: "Romania",
+      BG: "Bulgaria",
+      SI: "Slovenia",
+      HR: "Croatia",
+      GR: "Greece",
+      LT: "Lithuania",
+      LV: "Latvia",
+      EE: "Estonia",
+      UA: "Ukraine",
+    },
   },
 };
+
 function pickLang(code: I18nCode): Lang {
   if (code === "IT") return "it";
   if (code === "EN") return "en";
@@ -122,7 +191,8 @@ export type EuroPlateInstance = {
 export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlateInstance {
   const {
     i18n = "AUTO",
-    input,
+    //input,
+    wrapper = false, // 👈 AGGIUNTO: selector | HTMLElement | false
     ui = {},
     allowedCountries,
     mode = "AUTO",
@@ -141,18 +211,59 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
     debug = false,
   } = opts || ({} as EuroPlateOptions);
   let lang: Lang = pickLang(opts?.i18n ?? "AUTO");
-  //  const lang: Lang = pickLang(opts?.i18n ?? "AUTO");
-  const button = ui.button ?? undefined;
-  const dropdown = ui.dropdown ?? undefined;
-  const flagIcon = ui.flagIcon ?? undefined;
-  const flagLabel = ui.flagLabel ?? undefined;
-  const statusEl = ui.status ?? undefined;
 
+  // riferimenti UI locali (li riempiremo da wrapper oppure da opts.ui)
+  let input!: HTMLInputElement; // ← verrà assegnato
+  let button: HTMLElement | undefined = ui.button ?? undefined;
+  let dropdown: HTMLElement | undefined = ui.dropdown ?? undefined;
+  let flagIcon: HTMLElement | undefined = ui.flagIcon ?? undefined;
+  let flagLabel: HTMLElement | undefined = ui.flagLabel ?? undefined;
+  let statusEl: HTMLElement | undefined = ui.status ?? undefined;
+
+  // ----- AUTO-BUILD DOM SE wrapper È TRUTHY -----
+  if (wrapper) {
+    const root: HTMLElement | null =
+      typeof wrapper === "string" ? document.querySelector(wrapper) : wrapper;
+
+    if (!root) throw new Error(`Wrapper non trovato: ${String(wrapper)}`);
+
+    root.classList.add("plate-iti-wrapper");
+    root.innerHTML = `
+      <div class="plate-iti">
+        <button class="flag-btn" type="button" aria-haspopup="listbox" aria-expanded="false">
+        <div class="iti__flag-box"><div class="iti__flag iti__auto-eu"></div></div>
+        <span class="flag-label">${t(lang, "auto")}</span>
+        <svg width="14" height="14" viewBox="0 0 20 20" fill="none" aria-hidden="true" style="margin-left:4px">
+        <path d="M6 8l4 4 4-4" stroke="#6b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        </button>
+        <input class="plate-input" placeholder="${t(lang, "placeholderAuto")}" autocomplete="off" />
+        <div class="dropdown" role="listbox" aria-label="Select country"></div>
+      </div>
+      <div class="status"></div>
+    `;
+
+    // bind elementi generati
+    button = root.querySelector(".flag-btn") as HTMLElement;
+    flagIcon = root.querySelector(".iti__flag") as HTMLElement;
+    flagLabel = root.querySelector(".flag-label") as HTMLElement;
+    dropdown = root.querySelector(".dropdown") as HTMLElement;
+    input = root.querySelector(".plate-input") as HTMLInputElement;
+    statusEl = root.querySelector(".status") as HTMLElement;
+
+    // aggiorna anche opts per retro-compat (se altrove li leggi da opts)
+    (opts as any).ui = { button, flagIcon, flagLabel, dropdown, status: statusEl };
+    (opts as any).input = input;
+  } else {
+    // nessun wrapper → usa ciò che arriva da fuori (comportamento attuale)
+    input = (opts as any).input as HTMLInputElement;
+  }
+
+  // guard finali
   if (!EuroMod?.validatePlate || !EuroMod?.getInputMask) {
     throw new Error("EuroMod mancante o incompleto");
   }
-  if (!input) throw new Error("opts.input è richiesto");
-
+  if (!input) throw new Error("Devi passare `input` o `wrapper`.");
   // logger morbido
   let DBG = !!debug;
   const log: Logger = {
@@ -173,8 +284,40 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
     },
   };
 
-  const IM = deps?.inputmask ?? (globalThis as any).Inputmask;
-  if (!IM) log.warn?.("Inputmask non trovato: la maschera non sarà applicata");
+  // ---- Inputmask fallback loader ---------------------------------------------
+  let IM: any = deps?.inputmask ?? (globalThis as any).Inputmask;
+  let imReady = !!IM;
+  const wantAutoload = opts.autoLoadDeps?.inputmask !== false; // default: true
+
+  const imCdnUrl =
+    opts.cdn?.inputmask ?? "https://cdn.jsdelivr.net/npm/inputmask@5.0.9/dist/inputmask.min.js";
+
+  // Carica UMD async se non presente e autoload attivo
+  if (!IM && wantAutoload) {
+    const script = document.createElement("script");
+    script.src = imCdnUrl;
+    script.async = true;
+    script.crossOrigin = "anonymous";
+    script.onload = () => {
+      IM = (globalThis as any).Inputmask;
+      imReady = !!IM;
+      log.info?.("Inputmask caricato da CDN");
+      // se siamo già su un paese fisso, prova a (ri)applicare la maschera
+      if (IM && selected !== "AUTO") {
+        try {
+          applyMaskDebounced(input, selected);
+        } catch {}
+      }
+    };
+    script.onerror = () => {
+      log.warn?.("Caricamento Inputmask fallito (CDN)");
+    };
+    document.head.appendChild(script);
+  }
+
+  function hasIM(): boolean {
+    return !!IM;
+  }
 
   const {
     supportedCountries,
@@ -249,6 +392,10 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
       .replace(/9\{(\d+)\}/g, (_, n) => "9".repeat(+n));
 
   const applyMaskDebounced = debounce((inputEl: HTMLInputElement, country: string) => {
+    if (!hasIM()) {
+      log.warn?.("Inputmask non disponibile: salto applyMask");
+      return;
+    }
     if (!IM) return;
     if (!inputEl || !country || country === "AUTO") {
       hardClearMaskDebounced(inputEl);
