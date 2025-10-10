@@ -1,0 +1,151 @@
+.plate-iti {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #fff;
+  width: 360px;
+  font-family:
+    system-ui,
+    -apple-system,
+    Segoe UI,
+    Roboto,
+    sans-serif;
+}
+.plate-iti:focus-within {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+}
+
+.flag-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+  padding: 4px 6px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  background: transparent;
+}
+.flag-btn:hover {
+  background: #f3f4f6;
+}
+.iti__flag {
+  zoom: 1.1;
+}
+.flag-label {
+  font-size: 12px;
+  color: #6b7280;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.plate-input {
+  flex: 1;
+  border: 0;
+  outline: 0;
+  font-size: 16px;
+  letter-spacing: 0.5px;
+}
+.plate-input.valid {
+  color: #065f46;
+}
+.plate-input.invalid {
+  color: #991b1b;
+}
+
+.dropdown {
+  position: absolute;
+  z-index: 9999;
+  top: calc(100% + 6px);
+  left: 6px;
+  width: 320px;
+  max-height: 280px;
+  overflow: auto;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  display: none;
+}
+.dropdown.open {
+  display: block;
+}
+/* .country-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    cursor: pointer;
+} */
+.country-item:hover {
+  background: #f9fafb;
+}
+.country-name {
+  flex: 1;
+  font-size: 14px;
+}
+.country-code {
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.hint {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #6b7280;
+}
+.status {
+  margin-top: 8px;
+  font-size: 13px;
+}
+.status.ok {
+  color: #0f766e;
+}
+.status.err {
+  color: #b91c1c;
+}
+/* Flag "Auto" = EU (SVG embedded, stessa size delle altre) */
+.iti__auto-eu,
+.iti__eu {
+  width: 20px;
+  height: 15px;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
+  /* EU flag (blu + 12 stelle gialle semplificate) */
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 3 2'><rect width='3' height='2' fill='%23005BBB'/><g fill='%23FFD500' transform='translate(1.5,1)'><g id='s'><circle r='.06' transform='rotate(0) translate(0.7,0)'/></g><use href='%23s' transform='rotate(30)'/><use href='%23s' transform='rotate(60)'/><use href='%23s' transform='rotate(90)'/><use href='%23s' transform='rotate(120)'/><use href='%23s' transform='rotate(150)'/><use href='%23s' transform='rotate(180)'/><use href='%23s' transform='rotate(210)'/><use href='%23s' transform='rotate(240)'/><use href='%23s' transform='rotate(270)'/><use href='%23s' transform='rotate(300)'/><use href='%23s' transform='rotate(330)'/></g></svg>");
+}
+
+.iti__flag-box {
+  width: 20px;
+  margin-right: 0.5rem;
+  display: inline-flex;
+}
+.country-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.4rem;
+  cursor: pointer;
+}
+.country-item:hover {
+  background: #f6f6f7;
+}
+.status.ok {
+  color: #198754;
+}
+.status.err {
+  color: #dc3545;
+}
+input.valid {
+  border-color: #198754;
+}
+input.invalid {
+  border-color: #dc3545;
+}

@@ -1,3 +1,5 @@
+type Lang = "it" | "en";
+export type I18nCode = "AUTO" | "IT" | "EN";
 export type VehicleType = "any" | "car" | "bike";
 export type Logger = {
     debug?: (...a: any[]) => void;
@@ -33,18 +35,23 @@ export type EuroPlateOptions = {
         inputmask?: any;
     };
     debug?: boolean;
+    i18n?: I18nCode;
 };
 export type EuroPlateInstance = {
     setCountry: (code: "AUTO" | string) => void;
     setAllowed: (codes: string[]) => void;
     setVehicleType: (t: VehicleType) => void;
     setDebug: (on: boolean) => void;
+    setMode: (m: "AUTO" | string) => void;
+    setI18n: (code: I18nCode) => void;
     validate: () => {
         ok: boolean;
         country?: string;
         value: string;
     };
     destroy: () => void;
+    getI18n: () => Lang;
 };
 export declare function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlateInstance;
+export {};
 //# sourceMappingURL=europlate.client.d.ts.map

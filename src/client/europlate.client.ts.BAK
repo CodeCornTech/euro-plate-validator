@@ -190,13 +190,9 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
     const n = normalize(String(mode || ""));
     return isCountryKey(n) ? (n as CountryKey) : "AUTO";
   })();
-
-  let allowed: CountryKey[] = (
-    allowedCountries && allowedCountries.length ? allowedCountries : [...supportedCountries]
-  )
-    .map((c) => normalize(String(c || "")))
-    .filter(isCountryKey) as CountryKey[];
-
+  let allowed =
+    allowedCountries && allowedCountries.length ? allowedCountries : [...supportedCountries];
+    
   let destroyed = false;
 
   const fmtFor = (cc: string, s: string) =>
@@ -346,19 +342,19 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
 
     // paesi whitelisted
     for (const c of allowed) {
-      const cc = normalize(String(c || ""));
-      if (!isCountryKey(cc)) continue;
+      const n = normalize(String(c || ""));
+      if (!isCountryKey(n)) continue;
 
-      const iso = FLAG_MAP?.[cc] || "auto-eu";
+      const iso = FLAG_MAP?.[n] || "auto-eu";
       const div = document.createElement("div");
       div.className = "country-item";
       div.role = "option";
-      div.dataset.value = cc;
+      div.dataset.value = n;
       div.innerHTML = `
-        <div class="iti__flag-box"><div class="iti__flag iti__${iso}"></div></div>
-        <div class="country-name">${countryName(lang, cc)}</div>
-        <div class="country-code">${cc}</div>`;
-      div.onclick = () => selectCountry(cc);
+      <div class="iti__flag-box"><div class="iti__flag iti__${iso}"></div></div>
+      <div class="country-name">${countryName(lang, n)}</div>
+      <div class="country-code">${n}</div>`;
+      div.onclick = () => selectCountry(n);
       frag.appendChild(div);
     }
 
@@ -398,39 +394,18 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
     const res = validatePlate(raw, countries, { vehicleType });
 
     if (res.isValid && res.matches.length) {
-      const m = normalize(res.matches[0]?.country || "");
-      if (isCountryKey(m)) {
-        const match = m as CountryKey;
+      const match = normalize(res.matches[0]?.country || "");
+      const formatted = fmtFor(match, input.value);
+      if (formatted !== input.value) input.value = formatted;
 
-        const formatted = fmtFor(match, input.value);
-        if (formatted !== input.value) input.value = formatted;
+      setValidityUI(true, "", match as CountryKey, input, statusEl, lang);
+      setFlag(match as CountryKey, flagIcon, flagLabel, lang);
+      applyMaskDebounced(input, match);
 
-        setValidityUI(true, "", match, input, statusEl, lang);
-        setFlag(match, flagIcon, flagLabel, lang);
-        applyMaskDebounced(input, match);
+      const fmt = getDisplayFormat(match);
+      if (fmt) input.placeholder = fmt;
 
-        const fmt = getDisplayFormat(match);
-        if (fmt) input.placeholder = fmt;
-
-        return { ok: true, country: match, value: input.value };
-      } else {
-        // fallback: se non è un CountryKey valido, trattalo come KO sotto
-        // KO
-        const checkedArr = res.checked ?? [];
-        const msg = checkedArr.length
-          ? `❌ ${t(lang, "invalid")} — ${t(lang, "checked")}: ${checkedArr.join(", ")}`
-          : `❌ ${t(lang, "invalid")}`;
-
-        setValidityUI(false, msg, null, input, statusEl, lang);
-
-        // In AUTO rimuovi eventuale mask “residua”
-        if (selected === "AUTO") {
-          hardClearMaskDebounced(input);
-          input.placeholder = "";
-        }
-
-        return { ok: false, value: input.value };
-      }
+      return { ok: true, country: match, value: input.value };
     } else {
       // KO
       const checkedArr = res.checked ?? [];
@@ -514,9 +489,7 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
     setCountry: (code) => selectCountry(code),
 
     setAllowed(codes) {
-      allowed = Array.from(new Set((codes || []).map((c) => normalize(String(c || ""))))).filter(
-        isCountryKey
-      ) as CountryKey[];
+      allowed = Array.from(new Set((codes || []).map(normalize)));
       renderDropdown();
     },
     setVehicleType(t) {
@@ -563,7 +536,7 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
 
   renderDropdown();
   //instance.setCountry(selected);
-  selectCountry(mode); // ok: la funzione normalizza e imposta selected ("AUTO" | CountryKey)
+  selectCountry(mode); // invece di instance.setCountry(selected) con parametri mancanti
   log.notify?.("EuroPlate pronto ✅", "success");
 
   return instance;
