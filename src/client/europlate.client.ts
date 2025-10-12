@@ -36,6 +36,8 @@ export type EuroPlateOptions = {
   /** Nuovi: attributi input */
   inputId?: string; // default: derivato da wrapper/id → "epv-plate-xxxx"
   inputName?: string; // default: derivato da id oppure "plate"
+  /** Se true, non sovrascrive id/name quando l'input è esterno. Default: false (sovrascrive) */
+  preserveInputAttrs?: boolean;
   ui?: EuroPlateUI; // opzionale (UI pronta)
   allowedCountries?: string[]; // default: tutte
   mode?: "AUTO" | string; // default: "AUTO"
@@ -294,9 +296,23 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
     input = (opts as any).input as HTMLInputElement;
     if (!input) throw new Error("Devi passare `input` o `wrapper`.");
 
-    // se l’utente ha passato inputId/inputName → impostali (non sovrascrivo se già ci sono e non vuoi)
-    if (opts.inputId) input.id = opts.inputId;
-    if (opts.inputName) input.name = opts.inputName;
+    const preserve = !!opts.preserveInputAttrs;
+
+    // se l’utente ha passato inputId/inputName → applica secondo policy
+    if (opts.inputId) {
+      if (preserve) {
+        if (!input.id) input.id = opts.inputId;
+      } else {
+        input.id = opts.inputId;
+      }
+    }
+    if (opts.inputName) {
+      if (preserve) {
+        if (!input.name) input.name = opts.inputName;
+      } else {
+        input.name = opts.inputName;
+      }
+    }
 
     // fallback di sicurezza se mancano entrambi
     if (!input.id || !input.name) {
