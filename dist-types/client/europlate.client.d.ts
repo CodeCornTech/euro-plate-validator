@@ -18,6 +18,9 @@ export type EuroPlateUI = {
 export type EuroPlateOptions = {
     input?: HTMLInputElement;
     wrapper?: string | HTMLElement | false;
+    /** Nuovi: attributi input */
+    inputId?: string;
+    inputName?: string;
     ui?: EuroPlateUI;
     allowedCountries?: string[];
     mode?: "AUTO" | string;

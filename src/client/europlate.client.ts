@@ -33,6 +33,9 @@ export type EuroPlateUI = {
 export type EuroPlateOptions = {
   input?: HTMLInputElement; // era required → ora opzionale (se usi wrapper)
   wrapper?: string | HTMLElement | false; // 👈 selector, nodo o false (default)
+  /** Nuovi: attributi input */
+  inputId?: string; // default: derivato da wrapper/id → "epv-plate-xxxx"
+  inputName?: string; // default: derivato da id oppure "plate"
   ui?: EuroPlateUI; // opzionale (UI pronta)
   allowedCountries?: string[]; // default: tutte
   mode?: "AUTO" | string; // default: "AUTO"
@@ -188,6 +191,24 @@ export type EuroPlateInstance = {
   getI18n: () => Lang;
 };
 
+function randSuffix(n = 6) {
+  return Math.random()
+    .toString(36)
+    .slice(2, 2 + n);
+}
+function deriveDefaultIds(root?: HTMLElement | null, wrapperOpt?: string | HTMLElement | false) {
+  // prova a usare l'id del wrapper se c'è
+  const wId =
+    (typeof wrapperOpt === "string" && wrapperOpt.startsWith("#") ? wrapperOpt.slice(1) : null) ||
+    (root && root.id) ||
+    "";
+
+  const base = wId || `epv-${randSuffix()}`;
+  const inputId = `${base}-plate`;
+  const inputName = base.includes("-plate") ? base : `${base}-plate`;
+  return { inputId, inputName };
+}
+
 export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlateInstance {
   const {
     i18n = "AUTO",
@@ -210,7 +231,7 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
     deps,
     debug = false,
   } = opts || ({} as EuroPlateOptions);
-  let lang: Lang = pickLang(opts?.i18n ?? "AUTO");
+  let lang: Lang = pickLang(i18n);
 
   // riferimenti UI locali (li riempiremo da wrapper oppure da opts.ui)
   let input!: HTMLInputElement; // ← verrà assegnato
@@ -227,36 +248,65 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
 
     if (!root) throw new Error(`Wrapper non trovato: ${String(wrapper)}`);
 
-    root.classList.add("plate-iti-wrapper");
+    const { inputId: defId, inputName: defName } = deriveDefaultIds(root, wrapper);
+
+    const wantedId = opts.inputId || defId;
+    const wantedName = opts.inputName || wantedId || defName || "plate";
+
+    root.classList.add("plate-epv-wrapper");
     root.innerHTML = `
-      <div class="plate-iti">
-        <button class="flag-btn" type="button" aria-haspopup="listbox" aria-expanded="false">
-        <div class="iti__flag-box"><div class="iti__flag iti__auto-eu"></div></div>
+    <div class="plate-epv">
+      <button class="flag-btn" type="button" aria-haspopup="listbox" aria-expanded="false">
+        <div class="epv__flag-box"><div class="epv__flag epv__auto-eu"></div></div>
         <span class="flag-label">${t(lang, "auto")}</span>
         <svg width="14" height="14" viewBox="0 0 20 20" fill="none" aria-hidden="true" style="margin-left:4px">
-        <path d="M6 8l4 4 4-4" stroke="#6b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          <path d="M6 8l4 4 4-4" stroke="#6b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
-        </button>
-        <input class="plate-input" placeholder="${t(lang, "placeholderAuto")}" autocomplete="off" />
-        <div class="dropdown" role="listbox" aria-label="Select country"></div>
-      </div>
-      <div class="status"></div>
-    `;
+      </button>
+      <input class="plate-input" placeholder="${t(lang, "placeholderAuto")}" autocomplete="off" />
+      <div class="dropdown" role="listbox" aria-label="Select country"></div>
+    </div>
+    <div class="status"></div>
+  `;
 
+    // bind
+    const plateInput = root.querySelector(".plate-input") as HTMLInputElement;
+    if (!plateInput) throw new Error("Markup generato non contiene .plate-input");
+
+    // assegna id/name (sempre, per coerenza con l’opts)
+    plateInput.id = wantedId;
+    plateInput.name = wantedName;
     // bind elementi generati
+
     button = root.querySelector(".flag-btn") as HTMLElement;
-    flagIcon = root.querySelector(".iti__flag") as HTMLElement;
+    flagIcon = root.querySelector(".epv__flag") as HTMLElement;
     flagLabel = root.querySelector(".flag-label") as HTMLElement;
     dropdown = root.querySelector(".dropdown") as HTMLElement;
-    input = root.querySelector(".plate-input") as HTMLInputElement;
+    input = plateInput;
     statusEl = root.querySelector(".status") as HTMLElement;
 
     // aggiorna anche opts per retro-compat (se altrove li leggi da opts)
     (opts as any).ui = { button, flagIcon, flagLabel, dropdown, status: statusEl };
     (opts as any).input = input;
   } else {
-    // nessun wrapper → usa ciò che arriva da fuori (comportamento attuale)
+    // input esterno     // nessun wrapper → usa ciò che arriva da fuori (comportamento attuale)
+
     input = (opts as any).input as HTMLInputElement;
+    if (!input) throw new Error("Devi passare `input` o `wrapper`.");
+
+    // se l’utente ha passato inputId/inputName → impostali (non sovrascrivo se già ci sono e non vuoi)
+    if (opts.inputId) input.id = opts.inputId;
+    if (opts.inputName) input.name = opts.inputName;
+
+    // fallback di sicurezza se mancano entrambi
+    if (!input.id || !input.name) {
+      const { inputId: defId, inputName: defName } = deriveDefaultIds(
+        input.closest<HTMLElement>(".plate-epv-wrapper") || input.parentElement,
+        false
+      );
+      if (!input.id) input.id = defId;
+      if (!input.name) input.name = defName;
+    }
   }
 
   // guard finali
@@ -354,12 +404,12 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
   ) => {
     if (!flagIcon || !flagLabel) return; // UI opzionale
     if (!code || code === "AUTO") {
-      flagIcon.className = "iti__flag iti__auto-eu";
+      flagIcon.className = "epv__flag epv__auto-eu";
       flagLabel.textContent = t(lang, "auto");
       return;
     }
     const iso = FLAG_MAP[code] || "auto-eu";
-    flagIcon.className = `iti__flag iti__${iso}`;
+    flagIcon.className = `epv__flag epv__${iso}`;
     flagLabel.textContent = `${countryName(lang, code)} (${code})`; // sempre string
   };
 
@@ -484,7 +534,7 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
       auto.role = "option";
       auto.dataset.value = "AUTO";
       auto.innerHTML = `
-      <div class="iti__flag-box"><div class="iti__flag iti__auto-eu"></div></div>
+      <div class="epv__flag-box"><div class="epv__flag epv__auto-eu"></div></div>
       <div class="country-name">${t(lang, "auto")}</div>
       <div class="country-code">ANY</div>`;
       auto.onclick = () => selectCountry("AUTO");
@@ -502,7 +552,7 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
       div.role = "option";
       div.dataset.value = cc;
       div.innerHTML = `
-        <div class="iti__flag-box"><div class="iti__flag iti__${iso}"></div></div>
+        <div class="epv__flag-box"><div class="epv__flag epv__${iso}"></div></div>
         <div class="country-name">${countryName(lang, cc)}</div>
         <div class="country-code">${cc}</div>`;
       div.onclick = () => selectCountry(cc);

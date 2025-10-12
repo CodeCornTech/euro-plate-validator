@@ -1,0 +1,1273 @@
+:root {
+  --epv-hover-color: rgba(0, 0, 0, 0.05);
+  --epv-border-color: #ccc;
+  --epv-dialcode-color: #999;
+  --epv-dropdown-bg: white;
+  --epv-search-icon-color: #999;
+  --epv-spacer-horizontal: 8px;
+  --epv-flag-height: 12px;
+  --epv-flag-width: 16px;
+  --epv-border-width: 1px;
+  --epv-arrow-height: 4px;
+  --epv-arrow-width: 6px;
+  --epv-triangle-border: calc(var(--epv-arrow-width) / 2);
+  --epv-arrow-padding: 6px;
+  --epv-arrow-color: #555;
+  --epv-path-flags-1x: url("../img/flags.webp");
+  --epv-path-flags-2x: url("../img/flags@2x.webp");
+  --epv-path-globe-1x: url("../img/globe.webp");
+  --epv-path-globe-2x: url("../img/globe@2x.webp");
+  --epv-flag-sprite-width: 3904px;
+  --epv-flag-sprite-height: 12px;
+  --epv-mobile-popup-margin: 30px;
+}
+
+.epv {
+  position: relative;
+  display: inline-block;
+}
+.epv * {
+  box-sizing: border-box;
+}
+.epv__a11y-text {
+  width: 1px;
+  height: 1px;
+  clip: rect(1px, 1px, 1px, 1px);
+  overflow: hidden;
+  position: absolute;
+}
+.epv input.epv__tel-input,
+.epv input.epv__tel-input[type="text"],
+.epv input.epv__tel-input[type="tel"] {
+  position: relative;
+  z-index: 0;
+  margin: 0 !important;
+}
+.epv__country-container {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  padding: var(--epv-border-width);
+}
+.epv__selected-country {
+  z-index: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 100%;
+  background: none;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  border-radius: 0;
+  font-weight: inherit;
+  line-height: inherit;
+  text-decoration: none;
+}
+.epv__selected-country-primary {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  padding: 0 var(--epv-arrow-padding) 0 var(--epv-spacer-horizontal);
+}
+.epv__arrow {
+  margin-left: var(--epv-arrow-padding);
+  width: 0;
+  height: 0;
+  border-left: var(--epv-triangle-border) solid transparent;
+  border-right: var(--epv-triangle-border) solid transparent;
+  border-top: var(--epv-arrow-height) solid var(--epv-arrow-color);
+}
+.epv__arrow--up {
+  border-top: none;
+  border-bottom: var(--epv-arrow-height) solid var(--epv-arrow-color);
+}
+.epv__dropdown-content {
+  border-radius: 3px;
+  background-color: var(--epv-dropdown-bg);
+}
+.epv--inline-dropdown .epv__dropdown-content {
+  position: absolute;
+  z-index: 2;
+  margin-top: 3px;
+  margin-left: calc(var(--epv-border-width) * -1);
+  border: var(--epv-border-width) solid var(--epv-border-color);
+  box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.2);
+}
+.epv__search-input {
+  width: 100%;
+  border-width: 0;
+  border-radius: 3px;
+  padding-left: 30px;
+  padding-right: 28px;
+}
+[dir="rtl"] .epv__search-input {
+  padding-left: inherit;
+  padding-right: 30px;
+  background-position: right 8px center;
+}
+.epv__search-input + .epv__country-list {
+  border-top: 1px solid var(--epv-border-color);
+}
+.epv__search-input::-webkit-search-cancel-button {
+  appearance: none;
+}
+.epv__search-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.epv__search-icon {
+  position: absolute;
+  left: 8px;
+  display: flex;
+  pointer-events: none;
+}
+[dir="rtl"] .epv__search-icon {
+  left: auto;
+  right: 8px;
+}
+.epv__search-icon-svg {
+  stroke: var(--epv-search-icon-color);
+  fill: none;
+  stroke-width: 3;
+}
+.epv__search-clear {
+  position: absolute;
+  right: 4px;
+  background: transparent;
+  border: 0;
+  border-radius: 3px;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.15s ease;
+  width: 24px;
+  height: 24px;
+}
+.epv__search-clear .epv__search-clear-x {
+  stroke-width: 2;
+}
+.epv__search-clear .epv__search-clear-bg {
+  fill: var(--epv-search-icon-color);
+}
+[dir="rtl"] .epv__search-clear {
+  right: auto;
+  left: 4px;
+}
+.epv__search-clear:hover,
+.epv__search-clear:focus-visible {
+  background: var(--epv-hover-color);
+  outline: none;
+}
+.epv__no-results {
+  text-align: center;
+  padding: 30px 0;
+}
+.epv__country-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  overflow-y: scroll;
+  -webkit-overflow-scrolling: touch;
+}
+.epv--inline-dropdown .epv__country-list {
+  max-height: 185px;
+}
+.epv--flexible-dropdown-width .epv__country-list {
+  white-space: nowrap;
+}
+@media (max-width: 500px) {
+  .epv--flexible-dropdown-width .epv__country-list {
+    white-space: normal;
+  }
+}
+.epv__country {
+  display: flex;
+  align-items: center;
+  padding: 8px var(--epv-spacer-horizontal);
+  outline: none;
+}
+.epv__dial-code {
+  color: var(--epv-dialcode-color);
+}
+.epv__country.epv__highlight {
+  background-color: var(--epv-hover-color);
+}
+.epv__country-list .epv__flag,
+.epv__country-name {
+  margin-right: var(--epv-spacer-horizontal);
+}
+[dir="rtl"] .epv__country-list .epv__flag,
+[dir="rtl"] .epv__country-name {
+  margin-right: 0;
+  margin-left: var(--epv-spacer-horizontal);
+}
+.epv--allow-dropdown
+  .epv__country-container:not(:has(+ input[disabled])):not(:has(+ input[readonly]))
+  button.epv__selected-country {
+  cursor: pointer;
+}
+.epv--allow-dropdown
+  .epv__country-container:not(:has(+ input[disabled])):not(:has(+ input[readonly]))
+  .epv__selected-country-primary:hover,
+.epv--allow-dropdown
+  .epv__country-container:not(:has(+ input[disabled])):not(:has(+ input[readonly]))
+  .epv__selected-country:has(+ .epv__dropdown-content:hover)
+  .epv__selected-country-primary {
+  background-color: var(--epv-hover-color);
+}
+.epv .epv__selected-dial-code {
+  margin-left: 4px;
+}
+.epv--container {
+  position: fixed;
+  top: -1000px;
+  left: -1000px;
+  z-index: 1060;
+  padding: var(--epv-border-width);
+}
+.epv--container:hover {
+  cursor: pointer;
+}
+.epv__hide {
+  display: none;
+}
+.epv__v-hide {
+  visibility: hidden;
+}
+
+.epv--fullscreen-popup.epv--container {
+  background-color: rgba(0, 0, 0, 0.5);
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  position: fixed;
+  padding: var(--epv-mobile-popup-margin);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+.epv--fullscreen-popup .epv__dropdown-content {
+  display: flex;
+  flex-direction: column;
+  max-height: 100%;
+  position: relative;
+}
+.epv--fullscreen-popup .epv__country {
+  padding: 10px 10px;
+  line-height: 1.5em;
+}
+
+.epv__flag {
+  --epv-flag-offset: 100px;
+  height: var(--epv-flag-height);
+  width: var(--epv-flag-width);
+  border-radius: 1px;
+  box-shadow: 0px 0px 1px 0px #888;
+  background-image: var(--epv-path-flags-1x);
+  background-repeat: no-repeat;
+  background-position: var(--epv-flag-offset) 0;
+  background-size: var(--epv-flag-sprite-width) var(--epv-flag-sprite-height);
+}
+
+.epv__ac {
+  --epv-flag-offset: 0px;
+}
+
+.epv__ad {
+  --epv-flag-offset: -16px;
+}
+
+.epv__ae {
+  --epv-flag-offset: -32px;
+}
+
+.epv__af {
+  --epv-flag-offset: -48px;
+}
+
+.epv__ag {
+  --epv-flag-offset: -64px;
+}
+
+.epv__ai {
+  --epv-flag-offset: -80px;
+}
+
+.epv__al {
+  --epv-flag-offset: -96px;
+}
+
+.epv__am {
+  --epv-flag-offset: -112px;
+}
+
+.epv__ao {
+  --epv-flag-offset: -128px;
+}
+
+.epv__ar {
+  --epv-flag-offset: -144px;
+}
+
+.epv__as {
+  --epv-flag-offset: -160px;
+}
+
+.epv__at {
+  --epv-flag-offset: -176px;
+}
+
+.epv__au {
+  --epv-flag-offset: -192px;
+}
+
+.epv__aw {
+  --epv-flag-offset: -208px;
+}
+
+.epv__ax {
+  --epv-flag-offset: -224px;
+}
+
+.epv__az {
+  --epv-flag-offset: -240px;
+}
+
+.epv__ba {
+  --epv-flag-offset: -256px;
+}
+
+.epv__bb {
+  --epv-flag-offset: -272px;
+}
+
+.epv__bd {
+  --epv-flag-offset: -288px;
+}
+
+.epv__be {
+  --epv-flag-offset: -304px;
+}
+
+.epv__bf {
+  --epv-flag-offset: -320px;
+}
+
+.epv__bg {
+  --epv-flag-offset: -336px;
+}
+
+.epv__bh {
+  --epv-flag-offset: -352px;
+}
+
+.epv__bi {
+  --epv-flag-offset: -368px;
+}
+
+.epv__bj {
+  --epv-flag-offset: -384px;
+}
+
+.epv__bl {
+  --epv-flag-offset: -400px;
+}
+
+.epv__bm {
+  --epv-flag-offset: -416px;
+}
+
+.epv__bn {
+  --epv-flag-offset: -432px;
+}
+
+.epv__bo {
+  --epv-flag-offset: -448px;
+}
+
+.epv__bq {
+  --epv-flag-offset: -464px;
+}
+
+.epv__br {
+  --epv-flag-offset: -480px;
+}
+
+.epv__bs {
+  --epv-flag-offset: -496px;
+}
+
+.epv__bt {
+  --epv-flag-offset: -512px;
+}
+
+.epv__bw {
+  --epv-flag-offset: -528px;
+}
+
+.epv__by {
+  --epv-flag-offset: -544px;
+}
+
+.epv__bz {
+  --epv-flag-offset: -560px;
+}
+
+.epv__ca {
+  --epv-flag-offset: -576px;
+}
+
+.epv__cc {
+  --epv-flag-offset: -592px;
+}
+
+.epv__cd {
+  --epv-flag-offset: -608px;
+}
+
+.epv__cf {
+  --epv-flag-offset: -624px;
+}
+
+.epv__cg {
+  --epv-flag-offset: -640px;
+}
+
+.epv__ch {
+  --epv-flag-offset: -656px;
+}
+
+.epv__ci {
+  --epv-flag-offset: -672px;
+}
+
+.epv__ck {
+  --epv-flag-offset: -688px;
+}
+
+.epv__cl {
+  --epv-flag-offset: -704px;
+}
+
+.epv__cm {
+  --epv-flag-offset: -720px;
+}
+
+.epv__cn {
+  --epv-flag-offset: -736px;
+}
+
+.epv__co {
+  --epv-flag-offset: -752px;
+}
+
+.epv__cr {
+  --epv-flag-offset: -768px;
+}
+
+.epv__cu {
+  --epv-flag-offset: -784px;
+}
+
+.epv__cv {
+  --epv-flag-offset: -800px;
+}
+
+.epv__cw {
+  --epv-flag-offset: -816px;
+}
+
+.epv__cx {
+  --epv-flag-offset: -832px;
+}
+
+.epv__cy {
+  --epv-flag-offset: -848px;
+}
+
+.epv__cz {
+  --epv-flag-offset: -864px;
+}
+
+.epv__de {
+  --epv-flag-offset: -880px;
+}
+
+.epv__dj {
+  --epv-flag-offset: -896px;
+}
+
+.epv__dk {
+  --epv-flag-offset: -912px;
+}
+
+.epv__dm {
+  --epv-flag-offset: -928px;
+}
+
+.epv__do {
+  --epv-flag-offset: -944px;
+}
+
+.epv__dz {
+  --epv-flag-offset: -960px;
+}
+
+.epv__ec {
+  --epv-flag-offset: -976px;
+}
+
+.epv__ee {
+  --epv-flag-offset: -992px;
+}
+
+.epv__eg {
+  --epv-flag-offset: -1008px;
+}
+
+.epv__eh {
+  --epv-flag-offset: -1024px;
+}
+
+.epv__er {
+  --epv-flag-offset: -1040px;
+}
+
+.epv__es {
+  --epv-flag-offset: -1056px;
+}
+
+.epv__et {
+  --epv-flag-offset: -1072px;
+}
+
+.epv__fi {
+  --epv-flag-offset: -1088px;
+}
+
+.epv__fj {
+  --epv-flag-offset: -1104px;
+}
+
+.epv__fk {
+  --epv-flag-offset: -1120px;
+}
+
+.epv__fm {
+  --epv-flag-offset: -1136px;
+}
+
+.epv__fo {
+  --epv-flag-offset: -1152px;
+}
+
+.epv__fr {
+  --epv-flag-offset: -1168px;
+}
+
+.epv__ga {
+  --epv-flag-offset: -1184px;
+}
+
+.epv__gb {
+  --epv-flag-offset: -1200px;
+}
+
+.epv__gd {
+  --epv-flag-offset: -1216px;
+}
+
+.epv__ge {
+  --epv-flag-offset: -1232px;
+}
+
+.epv__gf {
+  --epv-flag-offset: -1248px;
+}
+
+.epv__gg {
+  --epv-flag-offset: -1264px;
+}
+
+.epv__gh {
+  --epv-flag-offset: -1280px;
+}
+
+.epv__gi {
+  --epv-flag-offset: -1296px;
+}
+
+.epv__gl {
+  --epv-flag-offset: -1312px;
+}
+
+.epv__gm {
+  --epv-flag-offset: -1328px;
+}
+
+.epv__gn {
+  --epv-flag-offset: -1344px;
+}
+
+.epv__gp {
+  --epv-flag-offset: -1360px;
+}
+
+.epv__gq {
+  --epv-flag-offset: -1376px;
+}
+
+.epv__gr {
+  --epv-flag-offset: -1392px;
+}
+
+.epv__gt {
+  --epv-flag-offset: -1408px;
+}
+
+.epv__gu {
+  --epv-flag-offset: -1424px;
+}
+
+.epv__gw {
+  --epv-flag-offset: -1440px;
+}
+
+.epv__gy {
+  --epv-flag-offset: -1456px;
+}
+
+.epv__hk {
+  --epv-flag-offset: -1472px;
+}
+
+.epv__hn {
+  --epv-flag-offset: -1488px;
+}
+
+.epv__hr {
+  --epv-flag-offset: -1504px;
+}
+
+.epv__ht {
+  --epv-flag-offset: -1520px;
+}
+
+.epv__hu {
+  --epv-flag-offset: -1536px;
+}
+
+.epv__id {
+  --epv-flag-offset: -1552px;
+}
+
+.epv__ie {
+  --epv-flag-offset: -1568px;
+}
+
+.epv__il {
+  --epv-flag-offset: -1584px;
+}
+
+.epv__im {
+  --epv-flag-offset: -1600px;
+}
+
+.epv__in {
+  --epv-flag-offset: -1616px;
+}
+
+.epv__io {
+  --epv-flag-offset: -1632px;
+}
+
+.epv__iq {
+  --epv-flag-offset: -1648px;
+}
+
+.epv__ir {
+  --epv-flag-offset: -1664px;
+}
+
+.epv__is {
+  --epv-flag-offset: -1680px;
+}
+
+.epv__it {
+  --epv-flag-offset: -1696px;
+}
+
+.epv__je {
+  --epv-flag-offset: -1712px;
+}
+
+.epv__jm {
+  --epv-flag-offset: -1728px;
+}
+
+.epv__jo {
+  --epv-flag-offset: -1744px;
+}
+
+.epv__jp {
+  --epv-flag-offset: -1760px;
+}
+
+.epv__ke {
+  --epv-flag-offset: -1776px;
+}
+
+.epv__kg {
+  --epv-flag-offset: -1792px;
+}
+
+.epv__kh {
+  --epv-flag-offset: -1808px;
+}
+
+.epv__ki {
+  --epv-flag-offset: -1824px;
+}
+
+.epv__km {
+  --epv-flag-offset: -1840px;
+}
+
+.epv__kn {
+  --epv-flag-offset: -1856px;
+}
+
+.epv__kp {
+  --epv-flag-offset: -1872px;
+}
+
+.epv__kr {
+  --epv-flag-offset: -1888px;
+}
+
+.epv__kw {
+  --epv-flag-offset: -1904px;
+}
+
+.epv__ky {
+  --epv-flag-offset: -1920px;
+}
+
+.epv__kz {
+  --epv-flag-offset: -1936px;
+}
+
+.epv__la {
+  --epv-flag-offset: -1952px;
+}
+
+.epv__lb {
+  --epv-flag-offset: -1968px;
+}
+
+.epv__lc {
+  --epv-flag-offset: -1984px;
+}
+
+.epv__li {
+  --epv-flag-offset: -2000px;
+}
+
+.epv__lk {
+  --epv-flag-offset: -2016px;
+}
+
+.epv__lr {
+  --epv-flag-offset: -2032px;
+}
+
+.epv__ls {
+  --epv-flag-offset: -2048px;
+}
+
+.epv__lt {
+  --epv-flag-offset: -2064px;
+}
+
+.epv__lu {
+  --epv-flag-offset: -2080px;
+}
+
+.epv__lv {
+  --epv-flag-offset: -2096px;
+}
+
+.epv__ly {
+  --epv-flag-offset: -2112px;
+}
+
+.epv__ma {
+  --epv-flag-offset: -2128px;
+}
+
+.epv__mc {
+  --epv-flag-offset: -2144px;
+}
+
+.epv__md {
+  --epv-flag-offset: -2160px;
+}
+
+.epv__me {
+  --epv-flag-offset: -2176px;
+}
+
+.epv__mf {
+  --epv-flag-offset: -2192px;
+}
+
+.epv__mg {
+  --epv-flag-offset: -2208px;
+}
+
+.epv__mh {
+  --epv-flag-offset: -2224px;
+}
+
+.epv__mk {
+  --epv-flag-offset: -2240px;
+}
+
+.epv__ml {
+  --epv-flag-offset: -2256px;
+}
+
+.epv__mm {
+  --epv-flag-offset: -2272px;
+}
+
+.epv__mn {
+  --epv-flag-offset: -2288px;
+}
+
+.epv__mo {
+  --epv-flag-offset: -2304px;
+}
+
+.epv__mp {
+  --epv-flag-offset: -2320px;
+}
+
+.epv__mq {
+  --epv-flag-offset: -2336px;
+}
+
+.epv__mr {
+  --epv-flag-offset: -2352px;
+}
+
+.epv__ms {
+  --epv-flag-offset: -2368px;
+}
+
+.epv__mt {
+  --epv-flag-offset: -2384px;
+}
+
+.epv__mu {
+  --epv-flag-offset: -2400px;
+}
+
+.epv__mv {
+  --epv-flag-offset: -2416px;
+}
+
+.epv__mw {
+  --epv-flag-offset: -2432px;
+}
+
+.epv__mx {
+  --epv-flag-offset: -2448px;
+}
+
+.epv__my {
+  --epv-flag-offset: -2464px;
+}
+
+.epv__mz {
+  --epv-flag-offset: -2480px;
+}
+
+.epv__na {
+  --epv-flag-offset: -2496px;
+}
+
+.epv__nc {
+  --epv-flag-offset: -2512px;
+}
+
+.epv__ne {
+  --epv-flag-offset: -2528px;
+}
+
+.epv__nf {
+  --epv-flag-offset: -2544px;
+}
+
+.epv__ng {
+  --epv-flag-offset: -2560px;
+}
+
+.epv__ni {
+  --epv-flag-offset: -2576px;
+}
+
+.epv__nl {
+  --epv-flag-offset: -2592px;
+}
+
+.epv__no {
+  --epv-flag-offset: -2608px;
+}
+
+.epv__np {
+  --epv-flag-offset: -2624px;
+}
+
+.epv__nr {
+  --epv-flag-offset: -2640px;
+}
+
+.epv__nu {
+  --epv-flag-offset: -2656px;
+}
+
+.epv__nz {
+  --epv-flag-offset: -2672px;
+}
+
+.epv__om {
+  --epv-flag-offset: -2688px;
+}
+
+.epv__pa {
+  --epv-flag-offset: -2704px;
+}
+
+.epv__pe {
+  --epv-flag-offset: -2720px;
+}
+
+.epv__pf {
+  --epv-flag-offset: -2736px;
+}
+
+.epv__pg {
+  --epv-flag-offset: -2752px;
+}
+
+.epv__ph {
+  --epv-flag-offset: -2768px;
+}
+
+.epv__pk {
+  --epv-flag-offset: -2784px;
+}
+
+.epv__pl {
+  --epv-flag-offset: -2800px;
+}
+
+.epv__pm {
+  --epv-flag-offset: -2816px;
+}
+
+.epv__pr {
+  --epv-flag-offset: -2832px;
+}
+
+.epv__ps {
+  --epv-flag-offset: -2848px;
+}
+
+.epv__pt {
+  --epv-flag-offset: -2864px;
+}
+
+.epv__pw {
+  --epv-flag-offset: -2880px;
+}
+
+.epv__py {
+  --epv-flag-offset: -2896px;
+}
+
+.epv__qa {
+  --epv-flag-offset: -2912px;
+}
+
+.epv__re {
+  --epv-flag-offset: -2928px;
+}
+
+.epv__ro {
+  --epv-flag-offset: -2944px;
+}
+
+.epv__rs {
+  --epv-flag-offset: -2960px;
+}
+
+.epv__ru {
+  --epv-flag-offset: -2976px;
+}
+
+.epv__rw {
+  --epv-flag-offset: -2992px;
+}
+
+.epv__sa {
+  --epv-flag-offset: -3008px;
+}
+
+.epv__sb {
+  --epv-flag-offset: -3024px;
+}
+
+.epv__sc {
+  --epv-flag-offset: -3040px;
+}
+
+.epv__sd {
+  --epv-flag-offset: -3056px;
+}
+
+.epv__se {
+  --epv-flag-offset: -3072px;
+}
+
+.epv__sg {
+  --epv-flag-offset: -3088px;
+}
+
+.epv__sh {
+  --epv-flag-offset: -3104px;
+}
+
+.epv__si {
+  --epv-flag-offset: -3120px;
+}
+
+.epv__sj {
+  --epv-flag-offset: -3136px;
+}
+
+.epv__sk {
+  --epv-flag-offset: -3152px;
+}
+
+.epv__sl {
+  --epv-flag-offset: -3168px;
+}
+
+.epv__sm {
+  --epv-flag-offset: -3184px;
+}
+
+.epv__sn {
+  --epv-flag-offset: -3200px;
+}
+
+.epv__so {
+  --epv-flag-offset: -3216px;
+}
+
+.epv__sr {
+  --epv-flag-offset: -3232px;
+}
+
+.epv__ss {
+  --epv-flag-offset: -3248px;
+}
+
+.epv__st {
+  --epv-flag-offset: -3264px;
+}
+
+.epv__sv {
+  --epv-flag-offset: -3280px;
+}
+
+.epv__sx {
+  --epv-flag-offset: -3296px;
+}
+
+.epv__sy {
+  --epv-flag-offset: -3312px;
+}
+
+.epv__sz {
+  --epv-flag-offset: -3328px;
+}
+
+.epv__tc {
+  --epv-flag-offset: -3344px;
+}
+
+.epv__td {
+  --epv-flag-offset: -3360px;
+}
+
+.epv__tg {
+  --epv-flag-offset: -3376px;
+}
+
+.epv__th {
+  --epv-flag-offset: -3392px;
+}
+
+.epv__tj {
+  --epv-flag-offset: -3408px;
+}
+
+.epv__tk {
+  --epv-flag-offset: -3424px;
+}
+
+.epv__tl {
+  --epv-flag-offset: -3440px;
+}
+
+.epv__tm {
+  --epv-flag-offset: -3456px;
+}
+
+.epv__tn {
+  --epv-flag-offset: -3472px;
+}
+
+.epv__to {
+  --epv-flag-offset: -3488px;
+}
+
+.epv__tr {
+  --epv-flag-offset: -3504px;
+}
+
+.epv__tt {
+  --epv-flag-offset: -3520px;
+}
+
+.epv__tv {
+  --epv-flag-offset: -3536px;
+}
+
+.epv__tw {
+  --epv-flag-offset: -3552px;
+}
+
+.epv__tz {
+  --epv-flag-offset: -3568px;
+}
+
+.epv__ua {
+  --epv-flag-offset: -3584px;
+}
+
+.epv__ug {
+  --epv-flag-offset: -3600px;
+}
+
+.epv__us {
+  --epv-flag-offset: -3616px;
+}
+
+.epv__uy {
+  --epv-flag-offset: -3632px;
+}
+
+.epv__uz {
+  --epv-flag-offset: -3648px;
+}
+
+.epv__va {
+  --epv-flag-offset: -3664px;
+}
+
+.epv__vc {
+  --epv-flag-offset: -3680px;
+}
+
+.epv__ve {
+  --epv-flag-offset: -3696px;
+}
+
+.epv__vg {
+  --epv-flag-offset: -3712px;
+}
+
+.epv__vi {
+  --epv-flag-offset: -3728px;
+}
+
+.epv__vn {
+  --epv-flag-offset: -3744px;
+}
+
+.epv__vu {
+  --epv-flag-offset: -3760px;
+}
+
+.epv__wf {
+  --epv-flag-offset: -3776px;
+}
+
+.epv__ws {
+  --epv-flag-offset: -3792px;
+}
+
+.epv__xk {
+  --epv-flag-offset: -3808px;
+}
+
+.epv__ye {
+  --epv-flag-offset: -3824px;
+}
+
+.epv__yt {
+  --epv-flag-offset: -3840px;
+}
+
+.epv__za {
+  --epv-flag-offset: -3856px;
+}
+
+.epv__zm {
+  --epv-flag-offset: -3872px;
+}
+
+.epv__zw {
+  --epv-flag-offset: -3888px;
+}
+
+.epv__globe {
+  background-image: var(--epv-path-globe-1x);
+  background-size: contain;
+  background-position: right;
+  box-shadow: none;
+  height: 19px;
+}
+
+@media (min-resolution: 2x) {
+  .epv__flag {
+    background-image: var(--epv-path-flags-2x);
+  }
+  .epv__globe {
+    background-image: var(--epv-path-globe-2x);
+  }
+}
