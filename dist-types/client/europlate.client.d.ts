@@ -21,6 +21,8 @@ export type EuroPlateOptions = {
     /** Nuovi: attributi input */
     inputId?: string;
     inputName?: string;
+    /** Se true, non sovrascrive id/name quando l'input è esterno. Default: false (sovrascrive) */
+    preserveInputAttrs?: boolean;
     ui?: EuroPlateUI;
     allowedCountries?: string[];
     mode?: "AUTO" | string;
