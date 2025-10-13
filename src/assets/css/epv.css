@@ -1,3 +1,6 @@
+.plate-epv-wrapper{
+  width: 100%;
+}
 .plate-epv {
   position: relative;
   display: inline-flex;
@@ -7,7 +10,7 @@
   border: 1px solid #d1d5db;
   border-radius: 8px;
   background: #fff;
-  width: 360px;
+  width: 100%;
   font-family:
     system-ui,
     -apple-system,
