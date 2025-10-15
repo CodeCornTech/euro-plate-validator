@@ -29,6 +29,8 @@
   gap: 6px;
   cursor: pointer;
   user-select: none;
+  /* TODO: width fissa o min-width? */
+  width: 30%;
   padding: 4px 6px;
   border-radius: 4px;
   border: 1px solid transparent;

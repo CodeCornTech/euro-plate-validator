@@ -3,12 +3,64 @@
 // Usa IM UMD su window.Inputmask (injectabile), nessun hardcode di DOM/paesi.
 import type { CountryKey } from "../countries.js";
 import {
-  FLAG_MAP,
-  COUNTRY_NAMES,
+  FLAG_MAP, // TODO: ALLINEARE O RIMUOVERE
+  COUNTRY_NAMES, // TODO: ALLINEARE O RIMUOVERE VEDI LINEA :393 const { ... COUNTRY_NAMES } = EuroMod;
   supportedCountries,
   normalizeCode,
   getCountryName,
 } from "../countries.js";
+
+function loadScriptOnce(src: string): Promise<void> {
+  if (!src) return Promise.resolve();
+  if (document.querySelector(`script[src="${src}"]`)) return Promise.resolve();
+  return new Promise((res, rej) => {
+    const s = document.createElement("script");
+    s.src = src;
+    s.async = true;
+    s.crossOrigin = "anonymous";
+    s.onload = () => res();
+    s.onerror = () => rej(new Error("Failed " + src));
+    document.head.appendChild(s);
+  });
+}
+function loadCssOnce(href: string): Promise<void> {
+  if (!href) return Promise.resolve();
+  if (document.querySelector(`link[rel="stylesheet"][href="${href}"]`)) return Promise.resolve();
+  return new Promise((res, rej) => {
+    const l = document.createElement("link");
+    l.rel = "stylesheet";
+    l.href = href;
+    l.crossOrigin = "anonymous";
+    l.onload = () => res();
+    l.onerror = () => rej(new Error("Failed " + href));
+    document.head.appendChild(l);
+  });
+}
+
+async function ensureDeps(opts: EuroPlateOptions) {
+  const wantJQ = opts.autoLoadDeps?.jquery === true;
+  const wantToastr = opts.autoLoadDeps?.toastr === true;
+
+  const jqueryUrl =
+    opts.cdn?.jquery ?? "https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js";
+  const toastrJsUrl =
+    opts.cdn?.toastrJs ?? "https://cdn.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.js";
+  const toastrCssUrl =
+    opts.cdn?.toastrCss ?? "https://cdn.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.css";
+
+  // jQuery (solo se richiesto e non presente)
+  if (wantJQ && !(globalThis as any).jQuery) {
+    try {
+      await loadScriptOnce(jqueryUrl);
+    } catch {}
+  }
+  // Toastr (solo se richiesto e non presente)
+  if (wantToastr && !(globalThis as any).toastr) {
+    try {
+      await Promise.all([loadCssOnce(toastrCssUrl), loadScriptOnce(toastrJsUrl)]);
+    } catch {}
+  }
+}
 
 type Lang = "it" | "en";
 export type I18nCode = "AUTO" | "IT" | "EN";
@@ -31,13 +83,13 @@ export type EuroPlateUI = {
 };
 
 export type EuroPlateOptions = {
+  i18n?: I18nCode; // <— NEW (default: 'AUTO')
   input?: HTMLInputElement; // era required → ora opzionale (se usi wrapper)
   wrapper?: string | HTMLElement | false; // 👈 selector, nodo o false (default)
   /** Nuovi: attributi input */
   inputId?: string; // default: derivato da wrapper/id → "epv-plate-xxxx"
   inputName?: string; // default: derivato da id oppure "plate"
-  /** Se true, non sovrascrive id/name quando l'input è esterno. Default: false (sovrascrive) */
-  preserveInputAttrs?: boolean;
+  preserveInputAttrs?: boolean; //Se true, non sovrascrive id/name quando l'input è esterno. Default: false (sovrascrive)
   ui?: EuroPlateUI; // opzionale (UI pronta)
   allowedCountries?: string[]; // default: tutte
   mode?: "AUTO" | string; // default: "AUTO"
@@ -46,20 +98,28 @@ export type EuroPlateOptions = {
   normalize?: (code: string) => string; // default: GB->UK
   formatters?: Record<string, (s: string) => string>; // per-CC
   timings?: { debounce?: number; clear?: number }; // default: 80/60
-  logger?: Logger; // opzionale
+  autoFocusOnInit?: boolean; // Se true, imposta il focus sull’input all’inizializzazione. Default: false
   deps?: { inputmask?: any }; // opzionale (se non c’è su window)
-  debug?: boolean; // default: false
   // 👉 Autoload delle dipendenze (true di default)
   autoLoadDeps?: {
-    inputmask?: boolean; // default true
+    inputmask?: boolean; // default: true
+    jquery?: boolean; // default: false
+    toastr?: boolean; // default: false
   };
   // 👉 CDN override (se vuoi cambiare l’URL)
   cdn?: {
     inputmask?: string; // default jsDelivr UMD
+    jquery?: string; // default: jsDelivr
+    toastrJs?: string; // default: jsDelivr
+    toastrCss?: string; // default: jsDelivr
   };
-  i18n?: I18nCode; // <— NEW (default: 'AUTO')
-  /** Se true, imposta il focus sull’input all’inizializzazione. Default: false */
-  autoFocusOnInit?: boolean;
+  debug?: boolean; // default: false (messaggi console) | ATTIVA IL LOGGER IN CONSOLE / TOASTR SE PRESENTE nel window
+  /** Dipendenze opzionali per logger */
+  /** Se true e non passi un logger, userà jQuery (se presente/caricato) */
+  useJqueryLogger?: boolean; // default: false
+  /** Se true e non passi un logger, userà Toastr (se presente/caricato) */
+  useToastrLogger?: boolean; // default: false
+  logger?: Logger; // opzionale
 };
 
 const ALL_COUNTRIES = supportedCountries as readonly CountryKey[];
@@ -213,6 +273,23 @@ function deriveDefaultIds(root?: HTMLElement | null, wrapperOpt?: string | HTMLE
   return { inputId, inputName };
 }
 
+//prettier-ignore
+function makeToastrLogger(DBG: boolean): Logger {
+  const t: any = (globalThis as any).toastr;
+  const has = !!t;
+  return {
+    debug: (...a) => { if (DBG) console.debug("[EPL]", ...a); },
+    info:  (...a) => { if (DBG) console.info("[EPL]", ...a); has && t.info?.(a.join(" ")); },
+    warn:  (...a) => { if (DBG) console.warn("[EPL]", ...a); has && t.warning?.(a.join(" ")); },
+    error: (...a) => { console.error("[EPL]", ...a); has && t.error?.(a.join(" ")); },
+    notify: (msg, type = "info") => {
+      if (!has) { if (DBG) console.log("[EPL]", msg); return; }
+      const fn = (t[type] || t.info).bind(t);
+      try { fn(String(msg)); } catch {}
+    },
+  };
+}
+
 export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlateInstance {
   const {
     i18n = "AUTO",
@@ -233,9 +310,16 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
     timings = { debounce: 80, clear: 60 },
     logger,
     deps,
-    debug = false,
     autoFocusOnInit = false,
+    debug = false,
+    useToastrLogger = false,
   } = opts || ({} as EuroPlateOptions);
+
+  // kick-off best-effort (non blocca l’init)
+  try {
+    void ensureDeps(opts);
+  } catch {}
+  // prepara logger
   let lang: Lang = pickLang(i18n);
 
   // riferimenti UI locali (li riempiremo da wrapper oppure da opts.ui)
@@ -333,25 +417,33 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
     throw new Error("EuroMod mancante o incompleto");
   }
   if (!input) throw new Error("Devi passare `input` o `wrapper`.");
+
   // logger morbido
   let DBG = !!debug;
-  const log: Logger = {
-    debug: (...a) => {
-      if (DBG) (logger?.debug ?? console.debug)("[EPL]", ...a);
-    },
-    info: (...a) => {
-      if (DBG) (logger?.info ?? console.info)("[EPL]", ...a);
-    },
-    warn: (...a) => {
-      if (DBG) (logger?.warn ?? console.warn)("[EPL]", ...a);
-    },
-    error: (...a) => {
-      if (DBG) (logger?.error ?? console.error)("[EPL]", ...a);
-    },
-    notify: (msg, type = "info") => {
-      if (DBG) (logger?.notify ?? (() => {}))(msg, type);
-    },
+  //prettier-ignore
+  let log: Logger = {
+    debug: (...a) => { if (DBG) (opts.logger?.debug ?? console.debug)("[EPL]", ...a); },
+    info:  (...a) => { if (DBG) (opts.logger?.info  ?? console.info )("[EPL]", ...a); },
+    warn:  (...a) => { if (DBG) (opts.logger?.warn  ?? console.warn )("[EPL]", ...a); },
+    error: (...a) => { (opts.logger?.error ?? console.error)("[EPL]", ...a); },
+    notify: (msg, type = "info") => { if (DBG) (opts.logger?.notify ?? (()=>{}))(msg, type); },
   };
+
+  //prettier-ignore
+  // se non è stato passato un logger e l’utente chiede Toastr, prova ad abilitarlo appena c’è
+  if (!opts.logger && useToastrLogger) {
+    // primo tentativo immediato
+    if ((globalThis as any).toastr) { log = makeToastrLogger(DBG); }
+    else {
+      // secondo tentativo “post-caricamento” (non blocca nulla)
+      setTimeout(() => {
+        if ((globalThis as any).toastr) {
+          log = makeToastrLogger(DBG);
+          log.info?.("Toastr logger attached");
+        }
+      }, 200);
+    }
+  }
 
   // ---- Inputmask fallback loader ---------------------------------------------
   let IM: any = deps?.inputmask ?? (globalThis as any).Inputmask;

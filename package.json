@@ -113,7 +113,9 @@
     "format:check": "prettier --check ."
   },
   "devDependencies": {
+    "@types/jquery": "3.5.33",
     "@types/node": "24.6.2",
+    "@types/toastr": "2.1.43",
     "esbuild": "0.25.10",
     "eslint-config-prettier": "10.1.8",
     "eslint-plugin-prettier": "5.5.4",

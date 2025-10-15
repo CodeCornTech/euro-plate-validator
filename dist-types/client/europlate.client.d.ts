@@ -16,12 +16,12 @@ export type EuroPlateUI = {
     status?: HTMLElement;
 };
 export type EuroPlateOptions = {
+    i18n?: I18nCode;
     input?: HTMLInputElement;
     wrapper?: string | HTMLElement | false;
     /** Nuovi: attributi input */
     inputId?: string;
     inputName?: string;
-    /** Se true, non sovrascrive id/name quando l'input è esterno. Default: false (sovrascrive) */
     preserveInputAttrs?: boolean;
     ui?: EuroPlateUI;
     allowedCountries?: string[];
@@ -36,20 +36,28 @@ export type EuroPlateOptions = {
         debounce?: number;
         clear?: number;
     };
-    logger?: Logger;
+    autoFocusOnInit?: boolean;
     deps?: {
         inputmask?: any;
     };
-    debug?: boolean;
     autoLoadDeps?: {
         inputmask?: boolean;
+        jquery?: boolean;
+        toastr?: boolean;
     };
     cdn?: {
         inputmask?: string;
+        jquery?: string;
+        toastrJs?: string;
+        toastrCss?: string;
     };
-    i18n?: I18nCode;
-    /** Se true, imposta il focus sull’input all’inizializzazione. Default: false */
-    autoFocusOnInit?: boolean;
+    debug?: boolean;
+    /** Dipendenze opzionali per logger */
+    /** Se true e non passi un logger, userà jQuery (se presente/caricato) */
+    useJqueryLogger?: boolean;
+    /** Se true e non passi un logger, userà Toastr (se presente/caricato) */
+    useToastrLogger?: boolean;
+    logger?: Logger;
 };
 export type EuroPlateInstance = {
     setCountry: (code: "AUTO" | string) => void;
