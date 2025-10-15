@@ -1,3 +1,4 @@
+// src/client/index.ts 
 // Esponi SOLO l’API pubblica del client
 export type {
   I18nCode,

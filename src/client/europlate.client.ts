@@ -192,6 +192,10 @@ export type EuroPlateInstance = {
 
 /* ============================================================
  * Interni: CDN + loaders + getters + ensure deps
+ * Puoi continuare a passare le opzioni avanzate quando servono (SRI, media, timeout, ecc.). Esempio:
+ * @example ts
+ *   await loadScriptOnce(urlIM, { integrity: "...", timeoutMs: 20000 });
+ *   await loadCssOnce(cssToastr,   { media: "all", timeoutMs: 10000 });
  * Extra opzionali (se servono più avanti)
  * **Preload**: prima di `appendChild` puoi verificare e/o aggiungere un `<link rel="preload" as="script">` / `as="style"`.
  * **AbortSignal**: se vuoi abortire manualmente, estendi le opzioni con `signal?: AbortSignal` e fai `signal.addEventListener("abort", …rej…)`.
@@ -219,6 +223,8 @@ type LoadScriptOptions = {
   attrs?: Record<string, string>;
   /** Timeout hard-fail (ms). 0 = no timeout. Default: 15000 */
   timeoutMs?: number;
+  /** opzionale: id fisso per dedup */
+  id?: string;
 };
 
 /** @internal */
@@ -235,65 +241,106 @@ type LoadCssOptions = {
   attrs?: Record<string, string>;
   /** Timeout hard-fail (ms). 0 = no timeout. Default: 15000 */
   timeoutMs?: number;
+  /** opzionale: id fisso per dedup */
+  id?: string;
 };
 
 /** Cache per prevenire doppi insert e coalescare chiamate concorrenti */
 const inFlightScripts = new Map<string, Promise<void>>();
 const inFlightCss = new Map<string, Promise<void>>();
 
+// ---------- util comuni ----------
+
+/** Rileva il CSP nonce dall'ambiente (override con opt.nonce). */
+function detectCspNonce(explicit?: string): string | undefined {
+  if (explicit) return explicit;
+  const winNonce = (window as any).__CSP_NONCE__;
+  if (typeof winNonce === "string" && winNonce) return winNonce;
+  const meta = document.querySelector('meta[name="csp-nonce"]') as HTMLMetaElement | null;
+  const metaNonce = meta?.getAttribute("content") || meta?.getAttribute("value");
+  return metaNonce || undefined;
+}
+
+function applyAttrs<T extends HTMLElement>(el: T, attrs?: Record<string, string>) {
+  if (!attrs) return;
+  for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+}
+
+/** Chiave di dedup: preferisci id, altrimenti URL normalizzato. */
+function buildKey(kind: "js" | "css", url: string, id?: string): string {
+  return id ? `${kind}#${id}` : `${kind}:${new URL(url, document.baseURI).href}`;
+}
+
+// ---------- loader script ----------
+
 /** Carica uno <script> esterno una sola volta (idempotente+concurrency-safe).
  *  @internal
  *  @param src URL assoluto/relativo dello script
  *  @returns Promise risolta quando `onload` fires (o noop se già presente)
  */
+
 export function loadScriptOnce(src: string, opt: LoadScriptOptions = {}): Promise<void> {
   if (!src || typeof document === "undefined") return Promise.resolve();
 
-  // già nel DOM?
+  // dedup 1: elemento già presente in DOM (per src o id)
+  if (opt.id && document.getElementById(opt.id)) return Promise.resolve();
   if (document.querySelector(`script[src="${src}"]`)) return Promise.resolve();
 
-  // chiamata già in corso?
-  const pending = inFlightScripts.get(src);
-  if (pending) return pending;
+  // dedup 2: chiamate concorrenti
+  const key = buildKey("js", src, opt.id);
+  const existing = inFlightScripts.get(key);
+  if (existing) return existing;
 
   const p = new Promise<void>((res, rej) => {
     const s = document.createElement("script");
-
-    // base attrs
     s.src = src;
-    s.async = true;
-    s.crossOrigin = opt.crossOrigin ?? "anonymous";
-    if (opt.module) s.type = "module";
-    if (opt.integrity) s.integrity = opt.integrity;
-    if (opt.nonce) s.nonce = opt.nonce;
-    s.setAttribute("data-loaded-by", "EuroPlate");
-    if (opt.attrs) for (const [k, v] of Object.entries(opt.attrs)) s.setAttribute(k, v);
 
-    let t: number | undefined;
-    if ((opt.timeoutMs ?? 15000) > 0) {
-      t = window.setTimeout(() => {
-        s.onload = null;
-        s.onerror = null;
-        try {
-          s.remove();
-        } catch {}
+    // type="module" opzionale
+    if (opt.module) s.type = "module";
+
+    // crossorigin (default "anonymous" se non vuoto)
+    if (opt.crossOrigin !== undefined) {
+      if (opt.crossOrigin) s.crossOrigin = opt.crossOrigin;
+    } else {
+      s.crossOrigin = "anonymous";
+    }
+
+    if (opt.integrity) s.integrity = opt.integrity;
+
+    const nonce = detectCspNonce(opt.nonce);
+    if (nonce) s.setAttribute("nonce", nonce);
+
+    if (opt.id) s.id = opt.id;
+
+    applyAttrs(s, opt.attrs);
+    s.async = true;
+    s.setAttribute("data-loaded-by", "EuroPlate");
+
+    let to: number | undefined;
+    const timeoutMs = opt.timeoutMs ?? 15000;
+    if (timeoutMs > 0) {
+      to = window.setTimeout(() => {
+        s.onerror = null!;
+        s.onload = null!;
         rej(new Error(`Timeout loading script: ${src}`));
-      }, opt.timeoutMs ?? 15000);
+      }, timeoutMs);
     }
 
     s.onload = () => {
-      if (t) clearTimeout(t);
+      if (to) clearTimeout(to);
       res();
     };
     s.onerror = () => {
-      if (t) clearTimeout(t);
+      if (to) clearTimeout(to);
       rej(new Error(`Failed ${src}`));
     };
 
     document.head.appendChild(s);
-  }).finally(() => inFlightScripts.delete(src));
+  }).finally(() => {
+    inFlightScripts.delete(key);
+  });
 
-  inFlightScripts.set(src, p);
+  inFlightScripts.set(key, p);
   return p;
 }
 
@@ -305,52 +352,65 @@ export function loadScriptOnce(src: string, opt: LoadScriptOptions = {}): Promis
 export function loadCssOnce(href: string, opt: LoadCssOptions = {}): Promise<void> {
   if (!href || typeof document === "undefined") return Promise.resolve();
 
-  // già nel DOM?
+  // dedup 1: elemento già presente in DOM (per href o id)
+  if (opt.id && document.getElementById(opt.id)) return Promise.resolve();
   if (document.querySelector(`link[rel="stylesheet"][href="${href}"]`)) return Promise.resolve();
 
-  // chiamata già in corso?
-  const pending = inFlightCss.get(href);
-  if (pending) return pending;
+  // dedup 2: chiamate concorrenti
+  const key = buildKey("css", href, opt.id);
+  const existing = inFlightCss.get(key);
+  if (existing) return existing;
 
   const p = new Promise<void>((res, rej) => {
     const l = document.createElement("link");
     l.rel = "stylesheet";
     l.href = href;
-    l.crossOrigin = opt.crossOrigin ?? "anonymous";
-    if (opt.integrity) l.integrity = opt.integrity;
-    if (opt.nonce) l.nonce = opt.nonce;
-    if (opt.media) l.media = opt.media;
-    l.setAttribute("data-loaded-by", "EuroPlate");
-    if (opt.attrs) for (const [k, v] of Object.entries(opt.attrs)) l.setAttribute(k, v);
 
-    let t: number | undefined;
-    if ((opt.timeoutMs ?? 15000) > 0) {
-      t = window.setTimeout(() => {
-        l.onload = null;
-        l.onerror = null;
-        try {
-          l.remove();
-        } catch {}
+    if (opt.media) l.media = opt.media;
+
+    if (opt.crossOrigin !== undefined) {
+      if (opt.crossOrigin) l.crossOrigin = opt.crossOrigin;
+    } else {
+      l.crossOrigin = "anonymous";
+    }
+
+    if (opt.integrity) l.integrity = opt.integrity;
+
+    const nonce = detectCspNonce(opt.nonce);
+    if (nonce) l.setAttribute("nonce", nonce);
+
+    if (opt.id) l.id = opt.id;
+
+    applyAttrs(l, opt.attrs);
+    l.setAttribute("data-loaded-by", "EuroPlate");
+
+    let to: number | undefined;
+    const timeoutMs = opt.timeoutMs ?? 15000;
+    if (timeoutMs > 0) {
+      to = window.setTimeout(() => {
+        l.onerror = null!;
+        l.onload = null!;
         rej(new Error(`Timeout loading css: ${href}`));
-      }, opt.timeoutMs ?? 15000);
+      }, timeoutMs);
     }
 
     l.onload = () => {
-      if (t) clearTimeout(t);
+      if (to) clearTimeout(to);
       res();
     };
     l.onerror = () => {
-      if (t) clearTimeout(t);
+      if (to) clearTimeout(to);
       rej(new Error(`Failed ${href}`));
     };
 
     document.head.appendChild(l);
-  }).finally(() => inFlightCss.delete(href));
+  }).finally(() => {
+    inFlightCss.delete(key);
+  });
 
-  inFlightCss.set(href, p);
+  inFlightCss.set(key, p);
   return p;
 }
-
 /** @internal */
 type Lang = "it" | "en";
 
@@ -403,14 +463,7 @@ async function ensureInputmask(opts: EuroPlateOptions, log: Logger) {
 
   const url = opts.cdn?.inputmask ?? cdnURLs.base + cdnURLs.inputmask.v + cdnURLs.inputmask.JS;
   try {
-    const cspNonce =
-      (window as any).__CSP_NONCE__ ||
-      document.querySelector('meta[name="csp-nonce"]')?.getAttribute("content") ||
-      undefined;
-
-    await loadScriptOnce(url, { module: false, nonce: cspNonce }).then(() =>
-      log.debug?.("Inputmask loaded")
-    );
+    await loadScriptOnce(url, { module: false }).then(() => log.debug?.("Inputmask loaded"));
   } catch {
     log.warn?.("Failed to load Inputmask from CDN");
   }
@@ -434,14 +487,7 @@ async function ensureJQuery(opts: EuroPlateOptions, log: Logger) {
   const url = opts.cdn?.jquery ?? cdnURLs.base + cdnURLs.jquery.v + cdnURLs.jquery.JS;
 
   try {
-    const cspNonce =
-      (window as any).__CSP_NONCE__ ||
-      document.querySelector('meta[name="csp-nonce"]')?.getAttribute("content") ||
-      undefined;
-
-    await loadScriptOnce(url, { module: false, nonce: cspNonce }).then(() =>
-      log.debug?.("jQuery loaded")
-    );
+    await loadScriptOnce(url, { module: false }).then(() => log.debug?.("jQuery loaded"));
   } catch {
     log.warn?.("Failed to load jQuery from CDN");
   }
@@ -469,16 +515,9 @@ async function ensureToastr(opts: EuroPlateOptions, log: Logger) {
   const js = opts.cdn?.toastrJs ?? cdnURLs.base + cdnURLs.toastr.v + cdnURLs.toastr.JS;
 
   try {
-    const cspNonce =
-      (window as any).__CSP_NONCE__ ||
-      document.querySelector('meta[name="csp-nonce"]')?.getAttribute("content") ||
-      undefined;
-
     await Promise.all([
       loadCssOnce(css, { media: "all" }).then(() => log.debug?.("toastr CSS loaded")),
-      loadScriptOnce(js, { module: false, nonce: cspNonce }).then(() =>
-        log.debug?.("toastr loaded")
-      ),
+      loadScriptOnce(js, { module: false }).then(() => log.debug?.("toastr loaded")),
     ]);
   } catch {
     log.warn?.("Failed to load toastr from CDN");
