@@ -60,7 +60,7 @@ npm install @codecorn/euro-plate-validator
 ### Client SDK (UI)
 
 - **ESM**
-  `https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.12/dist/client/europlate.client.mjs`
+  `https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.12/dist/client/index.mjs`
 
 - **CJS (Node)**
   `https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.12/dist/client/europlate.client.cjs`
@@ -159,7 +159,7 @@ type EuroPlateInstance = {
 
 <script type="module">
   import * as EuroMod from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.12/dist/browser/index.esm.js";
-  import { createEuroPlate } from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.12/dist/client/europlate.client.mjs";
+  import { createEuroPlate } from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.12/dist/client/index.mjs";
 
   createEuroPlate(EuroMod, {
     wrapper: "#plateBox",

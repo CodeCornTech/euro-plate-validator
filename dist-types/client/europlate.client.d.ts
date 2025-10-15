@@ -1,13 +1,17 @@
-type Lang = "it" | "en";
+/** Lingue supportate dall’SDK. */
 export type I18nCode = "AUTO" | "IT" | "EN";
+/** Tipi veicolo supportati dal validatore. */
 export type VehicleType = "any" | "car" | "bike";
+/** Interfaccia logger esterno compatibile. */
 export type Logger = {
     debug?: (...a: any[]) => void;
     info?: (...a: any[]) => void;
     warn?: (...a: any[]) => void;
     error?: (...a: any[]) => void;
+    /** Tipo libero lato SDK; verrà normalizzato lato toastr. */
     notify?: (msg: string, type?: string) => void;
 };
+/** Riferimenti UI opzionali (se non si usa `wrapper`). */
 export type EuroPlateUI = {
     flagIcon?: HTMLElement;
     flagLabel?: HTMLElement;
@@ -68,7 +72,7 @@ export type EuroPlateOptions = {
     normalize?: (code: string) => string;
     /** Formatter per country code (applicato a input/paste). */
     formatters?: Record<string, (s: string) => string>;
-    /** Timing UI: debounce applicazione mask e clear. @default {debounce:80, clear:60} */
+    /** Timing UI: debounce applicazione mask e clear. @default {debounce:80,clear:60} */
     timings?: {
         debounce?: number;
         clear?: number;
@@ -82,7 +86,7 @@ export type EuroPlateOptions = {
         inputmask?: any;
     };
     /** Flag di autoload per dipendenze esterne.
-     *  @default { inputmask:true, jquery:false, toastr:false }
+     *  @default {inputmask:true,jquery:false,toastr:false}
      */
     autoLoadDeps?: {
         inputmask?: boolean;
@@ -144,7 +148,6 @@ export type EuroPlateInstance = {
  *  @throws        Error se wrapper/input non trovati o `EuroMod` incompleto
  */
 export declare function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlateInstance;
-export {};
 /**
  * Wrapper DOM
  * - A runtime, se `wrapper` è fornito, viene generata la struttura:

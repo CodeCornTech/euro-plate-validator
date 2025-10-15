@@ -8,10 +8,13 @@
   display: flex;
   flex-direction: column;
   align-items: stretch;
+  /* assicura che eventuali overlay non vengano tagliati */
+  overflow: visible;
 }
 
 /* --- Contenitore interno (flag + input + dropdown) --- */
 .plate-epv {
+  position: relative;              /* 👈 dropdown assoluto ancorato qui */
   display: flex;
   align-items: center;
   gap: 8px;
@@ -26,19 +29,20 @@
 
 /* --- Input targa --- */
 .plate-input {
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 0;                    /* 👈 importante in flex per evitare overflow */
   border: none;
   outline: none;
   font-size: 1rem;
   background: transparent;
   letter-spacing: 0.5px;
-  /* TODO: width fissa o min-width? */
-  width: 30%;
+
 }
 
 /* --- Bottone bandiera --- */
 .flag-btn {
   display: flex;
+  position: relative;
   align-items: center;
   gap: 6px;
   background: none;
@@ -81,9 +85,11 @@
 .dropdown {
   position: absolute;
   z-index: 9999;
-  left: 6px;
-  width: 320px;
-  max-height: 280px;
+  top: calc(100% + 6px);           /* 👈 esci sotto al box */
+  left: 0;                         /* 👈 allinea al bordo sinistro del container */
+  min-width: max(280px, 100%);     /* 👈 almeno 280px, ma non più stretto del box */
+  max-height: 320px;
+   right: auto;
   overflow: auto;
   background: #fff;
   border: 1px solid #e5e7eb;

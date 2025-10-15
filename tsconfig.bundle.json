@@ -9,6 +9,7 @@
     "declaration": true,
     "emitDeclarationOnly": true,
     "outDir": "dist-types",
+    "stripInternal": true,
 
     "strict": true,
     "skipLibCheck": true

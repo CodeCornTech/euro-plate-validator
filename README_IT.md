@@ -60,7 +60,7 @@ npm install @codecorn/euro-plate-validator
 ### Client SDK (UI)
 
 - **ESM**
-  `https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.12/dist/client/europlate.client.mjs`
+  `https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.12/dist/client/index.mjs`
 
 - **CJS (Node)**
   `https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.12/dist/client/europlate.client.cjs`
@@ -160,7 +160,7 @@ type EuroPlateInstance = {
 
 <script type="module">
   import * as EuroMod from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.12/dist/browser/index.esm.js";
-  import { createEuroPlate } from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.12/dist/client/europlate.client.mjs";
+  import { createEuroPlate } from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.12/dist/client/index.mjs";
 
   createEuroPlate(EuroMod, {
     wrapper: "#plateBox",
@@ -178,7 +178,7 @@ type EuroPlateInstance = {
 ```html
 <script type="module">
   import * as EuroMod from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.12/dist/browser/index.esm.js";
-  import { createEuroPlate } from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.12/dist/client/europlate.client.mjs";
+  import { createEuroPlate } from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.12/dist/client/index.mjs";
 
   createEuroPlate(EuroMod, {
     wrapper: "#plateBox",
@@ -213,7 +213,7 @@ createEuroPlate(EuroMod, {
 <input id="myPlate" />
 <script type="module">
   import * as EuroMod from ".../index.esm.js";
-  import { createEuroPlate } from ".../europlate.client.mjs";
+  import { createEuroPlate } from ".../index.mjs";
 
   createEuroPlate(EuroMod, {
     input: document.getElementById("myPlate"),
@@ -247,7 +247,7 @@ add_action('wp_enqueue_scripts', function () {
     if ($handle === 'epv-init') {
       return '<script type="module">' .
         'import * as EuroMod from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.12/dist/browser/index.esm.js";' .
-        'import { createEuroPlate } from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.12/dist/client/europlate.client.mjs";' .
+        'import { createEuroPlate } from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.12/dist/client/index.mjs";' .
         'window.__epvInit=(id,opts)=>createEuroPlate(EuroMod,Object.assign({wrapper:"#"+id,mode:"AUTO",i18n:"IT",debug:true,autoFocusOnInit:false},opts||{}));' .
       '</script>';
     }
