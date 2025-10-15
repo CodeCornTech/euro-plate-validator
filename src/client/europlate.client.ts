@@ -36,6 +36,12 @@ function loadCssOnce(href: string): Promise<void> {
     document.head.appendChild(l);
   });
 }
+const cdnURLs = {
+  basePath: "https://cdn.jsdelivr.net/npm/",
+  jquery: { v: "jquery@3.7.1", JS: "/dist/jquery.min.js" },
+  toastr: { v: "toastr@2.1.4", JS: "/build/toastr.min.js", CSS: "/build/toastr.min.css" },
+  inputmask: { v: "inputmask@5.0.9", JS: "/dist/inputmask.min.js"},
+};
 
 async function ensureDeps(opts: EuroPlateOptions) {
   const wantJQ = opts.autoLoadDeps?.jquery === true;
@@ -274,16 +280,16 @@ function deriveDefaultIds(root?: HTMLElement | null, wrapperOpt?: string | HTMLE
 }
 
 //prettier-ignore
-function makeToastrLogger(DBG: boolean): Logger {
+function makeToastrLogger(logPrefix='[EPL]',DBG: boolean): Logger {
   const t: any = (globalThis as any).toastr;
   const has = !!t;
   return {
-    debug: (...a) => { if (DBG) console.debug("[EPL]", ...a); },
-    info:  (...a) => { if (DBG) console.info("[EPL]", ...a); has && t.info?.(a.join(" ")); },
-    warn:  (...a) => { if (DBG) console.warn("[EPL]", ...a); has && t.warning?.(a.join(" ")); },
-    error: (...a) => { console.error("[EPL]", ...a); has && t.error?.(a.join(" ")); },
+    debug: (...a) => { if (DBG) console.debug(logPrefix, ...a); },
+    info:  (...a) => { if (DBG) console.info(logPrefix, ...a); has && t.info?.(a.join(" ")); },
+    warn:  (...a) => { if (DBG) console.warn(logPrefix, ...a); has && t.warning?.(a.join(" ")); },
+    error: (...a) => { console.error(logPrefix, ...a); has && t.error?.(a.join(" ")); },
     notify: (msg, type = "info") => {
-      if (!has) { if (DBG) console.log("[EPL]", msg); return; }
+      if (!has) { if (DBG) console.log(logPrefix, msg); return; }
       const fn = (t[type] || t.info).bind(t);
       try { fn(String(msg)); } catch {}
     },
@@ -322,6 +328,8 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
   // prepara logger
   let lang: Lang = pickLang(i18n);
 
+  // ----- RIFERIMENTI UI -----
+  // TODO PERMETTERE DI DECIRE IL TYPE DELL INPUT (text/number/altro)?
   // riferimenti UI locali (li riempiremo da wrapper oppure da opts.ui)
   let input!: HTMLInputElement; // ← verrà assegnato
   let button: HTMLElement | undefined = ui.button ?? undefined;
@@ -352,7 +360,7 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
           <path d="M6 8l4 4 4-4" stroke="#6b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
       </button>
-      <input class="plate-input" placeholder="${t(lang, "placeholderAuto")}" autocomplete="off" />
+      <input class="plate-input" type="text" placeholder="${t(lang, "placeholderAuto")}" autocomplete="off" />
       <div class="dropdown" role="listbox" aria-label="Select country"></div>
     </div>
     <div class="status"></div>
@@ -420,12 +428,13 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
 
   // logger morbido
   let DBG = !!debug;
+  const logPrefix = `[EPL:${input.id}]`;
   //prettier-ignore
   let log: Logger = {
-    debug: (...a) => { if (DBG) (opts.logger?.debug ?? console.debug)("[EPL]", ...a); },
-    info:  (...a) => { if (DBG) (opts.logger?.info  ?? console.info )("[EPL]", ...a); },
-    warn:  (...a) => { if (DBG) (opts.logger?.warn  ?? console.warn )("[EPL]", ...a); },
-    error: (...a) => { (opts.logger?.error ?? console.error)("[EPL]", ...a); },
+    debug: (...a) => { if (DBG) (opts.logger?.debug ?? console.debug)(logPrefix, ...a); },
+    info:  (...a) => { if (DBG) (opts.logger?.info  ?? console.info )(logPrefix, ...a); },
+    warn:  (...a) => { if (DBG) (opts.logger?.warn  ?? console.warn )(logPrefix, ...a); },
+    error: (...a) => { (opts.logger?.error ?? console.error)(logPrefix, ...a); },
     notify: (msg, type = "info") => { if (DBG) (opts.logger?.notify ?? (()=>{}))(msg, type); },
   };
 
@@ -433,12 +442,12 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
   // se non è stato passato un logger e l’utente chiede Toastr, prova ad abilitarlo appena c’è
   if (!opts.logger && useToastrLogger) {
     // primo tentativo immediato
-    if ((globalThis as any).toastr) { log = makeToastrLogger(DBG); }
+    if ((globalThis as any).toastr) { log = makeToastrLogger(logPrefix,DBG); }
     else {
       // secondo tentativo “post-caricamento” (non blocca nulla)
       setTimeout(() => {
         if ((globalThis as any).toastr) {
-          log = makeToastrLogger(DBG);
+          log = makeToastrLogger(logPrefix,DBG);
           log.info?.("Toastr logger attached");
         }
       }, 200);
