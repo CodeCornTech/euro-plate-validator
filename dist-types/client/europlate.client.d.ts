@@ -48,6 +48,8 @@ export type EuroPlateOptions = {
         inputmask?: string;
     };
     i18n?: I18nCode;
+    /** Se true, imposta il focus sull’input all’inizializzazione. Default: false */
+    autoFocusOnInit?: boolean;
 };
 export type EuroPlateInstance = {
     setCountry: (code: "AUTO" | string) => void;

@@ -40,3 +40,7 @@ pnpm-debug.log*
 .env.*
 .editorconfig
 _HTML/**
+TODO*
+WIN*
+__STASH/**
+_FINAL_HTML/**

@@ -66,7 +66,8 @@
     "dist-types/",
     "bin/",
     "LICENSE",
-    "README.md"
+    "README.md",
+    "README_IT.md"
   ],
   "sideEffects": false,
   "publishConfig": {
@@ -79,7 +80,7 @@
   "bugs": {
     "url": "https://github.com/CodeCornTech/euro-plate-validator/issues"
   },
-  "homepage": "https://github.com/CodeCornTech/euro-plate-validator/issues#readme",
+  "homepage": "https://github.com/CodeCornTech/euro-plate-validator/blob/main/README.md",
   "license": "MIT",
   "author": "Federico Girolami <f.girolami@codecorn.it|https://codecorn.it> (@fgirolami29|@CodeCornTech)",
   "scripts": {

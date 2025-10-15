@@ -1,8 +1,10 @@
 # 🌍 @codecorn/euro-plate-validator
 
-> 🚗 European license plate validator (Russia excluded).  
-> Multi-country regex-based syntax validation for EU/EEA license plates.  
-> Supports Node.js (TypeScript/JavaScript) and PHP implementations.
+> 🚗 European license plate validator (Russia excluded).
+> Multi-country, regex-based validation for EU/EEA license plates.
+> Works in **Node.js**, **TypeScript**, and the **browser** (with a lightweight UI client).
+
+[![Lang: IT](https://img.shields.io/badge/docs-Italiano-green?style=for-the-badge)](./README_IT.md)
 
 ---
 
@@ -25,136 +27,224 @@
 
 ## ✨ Features
 
-- ✅ **Multi-country support** (25+ EU/EEA countries)
+- ✅ **Multi-country** support (25+ EU/EEA)
 - 🚫 **Russia excluded** by design
-- 🔠 Normalizes input (spaces, hyphens)
-- 🖥 Available for **Node.js/TypeScript** and **PHP**
-- 📦 Ready to publish on **npm**
-
----
-
-## CDN quick links
-
-> Usa URL **versionati** per evitare cache vecchie del CDN. Sostituisci `1.0.5` con l’ultima.
-
-- **ESM (browser)**
-
-  - jsDelivr: `https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.5/dist/browser/index.esm.min.js`
-  - UNPKG: `https://unpkg.com/@codecorn/euro-plate-validator@1.0.5/dist/browser/index.esm.min.js`
-
-- **IIFE (global `window.EuroPlate`)**
-  - jsDelivr: `https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.5/dist/browser/index.iife.min.js`
-  - UNPKG: `https://unpkg.com/@codecorn/euro-plate-validator@1.0.5/dist/browser/index.iife.min.js`
-
-<sub>Se vedi file non aggiornati, forza il purge:  
-`https://purge.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.5/dist/browser/index.iife.min.js`</sub>
+- 🔠 Normalizes input (spaces, hyphens, case)
+- 🧠 Smart regex engine per-country (car/motorcycle aware)
+- 🧩 Lightweight **client SDK** with UI, flags, dropdown, and `Inputmask` integration
+- 🌐 Built-in i18n: **IT** and **EN**
+- 🧯 Safe dependency autoload via CDN with configurable overrides
 
 ---
 
 ## 📦 Installation
 
-### Node.js / TypeScript
-
 ```bash
 npm install @codecorn/euro-plate-validator
 ```
 
-### PHP
+---
 
-Scarica `EuroPlateValidator.php` nella tua codebase.
+## 🔗 CDN (v1.0.12)
+
+> Use **versioned URLs** to avoid stale CDN caches.
+
+### Core module
+
+- **ESM (browser)**
+  `https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.12/dist/browser/index.esm.js`
+
+- **IIFE (global `window.EuroPlateValidator`)**
+  `https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.12/dist/browser/index.iife.min.js`
+
+### Client SDK (UI)
+
+- **ESM**
+  `https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.12/dist/client/europlate.client.mjs`
+
+- **CJS (Node)**
+  `https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.12/dist/client/europlate.client.cjs`
+
+### Assets (CSS)
+
+- `https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.12/dist/assets/css/styles.css`
+- (compat alias) `…/assets/css/styles.css`
 
 ---
 
-## 🚀 Usage
+## 🧠 Core API
 
 ### Node.js / TypeScript
 
 ```ts
 import { validatePlate } from "@codecorn/euro-plate-validator";
 
-// Italy
-console.log(validatePlate("AB 123 CD", ["IT"]));
-// -> { isValid: true, matches: [{country:"IT", name:"Italy"}], checked:["IT"] }
+// Italy (car)
+validatePlate("AB 123 CD", ["IT"], { vehicleType: "car" });
+// → { isValid: true, matches: [{country:"IT", name:"Italy"}], checked:["IT"] }
 
-// UK
-console.log(validatePlate("AB12 CDE", ["UK", "IE"]));
+// UK vs IE
+validatePlate("AB12 CDE", ["UK", "IE"]);
 ```
 
-**Esempi veloci:**
+---
+
+## 🧩 Browser Client SDK — `createEuroPlate()`
+
+The browser client auto-generates a full UI (`flag + input + dropdown + status`) or attaches to an existing `<input>`.
+
+### Core Options
 
 ```ts
-import { validatePlate } from "./dist/index.js";
+type EuroPlateOptions = {
+  // DOM
+  input?: HTMLInputElement;
+  wrapper?: string | HTMLElement | false;
+  inputId?: string;
+  inputName?: string;
+  preserveInputAttrs?: boolean; // ✅ NEW (default false)
+  autoFocusOnInit?: boolean; // ✅ NEW (default false)
 
-validatePlate("AB 123 CD", ["IT"], { vehicleType: "car" }); // ✅ IT Car
-validatePlate("AA 12345", ["IT"], { vehicleType: "motorcycle" }); // ✅ IT Moto
-validatePlate("AA 12345", ["IT"], { vehicleType: "car" }); // ❌ (no_match)
-```
+  // UX / localization
+  mode?: "AUTO" | string;
+  i18n?: "AUTO" | "IT" | "EN";
+  allowedCountries?: string[];
+  vehicleType?: "any" | "car" | "bike";
+  placeholders?: { auto?: string };
 
-### Come si usa il toggle senza toccare il file
+  // Formatting
+  normalize?: (code: string) => string;
+  formatters?: Record<string, (s: string) => string>;
 
-* **Abilita da HTML:**
+  // Timings
+  timings?: { debounce?: number; clear?: number };
 
-  ```html
-  <script type="module" src="demo.js" data-europlate-debug="1"></script>
-  ```
-* **Oppure runtime:**
-
-  ```js
-  enableEuroPlateDebug(true);   // ON
-  enableEuroPlateDebug(false);  // OFF
-  ```
-
-### Per un logger esterno (opzionale)
-
-```js
-window.EuroPlateLogger = {
-  debug: (...a) => console.debug('[MYLOG]', ...a),
-  info:  (...a) => console.info('[MYLOG]', ...a),
-  warn:  (...a) => console.warn('[MYLOG]', ...a),
-  error: (...a) => console.error('[MYLOG]', ...a),
-  notify: (msg, type='info') => {
-    // integra con Sentry/Toast/Datadog/etc
-  }
+  // Dependencies / debugging
+  deps?: { inputmask?: any };
+  autoLoadDeps?: { inputmask?: boolean }; // default true
+  cdn?: { inputmask?: string };
+  logger?: Logger;
+  debug?: boolean;
 };
 ```
 
-Così tieni il codice **pulito**, i log “di sviluppo” sono **a scomparsa** e puoi innestare qualsiasi pipeline di logging quando vuoi, senza toccare il core.
+### Instance methods
 
-### PHP
-
-```php
-require '_php_variant/EuroPlateValidator.php';
-
-print_r(validate_plate("AB 123 CD", ["IT"], "car"));
-print_r(validate_plate("AA 12345", ["IT"], "motorcycle"));
+```ts
+type EuroPlateInstance = {
+  setCountry(code: "AUTO" | string): void;
+  setMode(m: "AUTO" | string): void;
+  setAllowed(codes: string[]): void;
+  setVehicleType(t: "any" | "car" | "bike"): void;
+  setI18n(code: "AUTO" | "IT" | "EN"): void;
+  setDebug(on: boolean): void;
+  validate(): { ok: boolean; country?: string; value: string };
+  destroy(): void;
+  getI18n(): "it" | "en";
+};
 ```
 
-### 🔧 CLI
+---
+
+## 💡 Usage Examples
+
+### A) Manual dependency injection (`window.Inputmask`)
+
+```html
+<link
+  rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.12/dist/assets/css/styles.css"
+/>
+<script src="https://cdn.jsdelivr.net/npm/inputmask@5.0.9/dist/inputmask.min.js"></script>
+
+<script type="module">
+  import * as EuroMod from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.12/dist/browser/index.esm.js";
+  import { createEuroPlate } from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.12/dist/client/europlate.client.mjs";
+
+  createEuroPlate(EuroMod, {
+    wrapper: "#plateBox",
+    mode: "AUTO",
+    i18n: "IT",
+    debug: true,
+    autoFocusOnInit: false,
+    deps: { inputmask: window.Inputmask },
+  });
+</script>
+```
+
+### B) Autoload dependencies from CDN (default)
+
+```js
+createEuroPlate(EuroMod, {
+  wrapper: "#plateBox",
+  i18n: "AUTO",
+  debug: true,
+  // Inputmask is auto-loaded from jsDelivr UMD
+});
+```
+
+### C) Custom CDN override
+
+```js
+createEuroPlate(EuroMod, {
+  wrapper: "#plateBox",
+  cdn: {
+    inputmask: "https://unpkg.com/inputmask@5.0.9/dist/inputmask.min.js",
+  },
+});
+```
+
+### D) Disable autoload completely (no-mask mode)
+
+```js
+createEuroPlate(EuroMod, {
+  wrapper: "#plateBox",
+  autoLoadDeps: { inputmask: false },
+});
+```
+
+### E) Existing input (no auto-build)
+
+```js
+createEuroPlate(EuroMod, {
+  input: document.getElementById("myPlate"),
+  inputName: "plate_number",
+  preserveInputAttrs: true,
+  i18n: "EN",
+  mode: "AUTO",
+  autoFocusOnInit: false,
+});
+```
+
+---
+
+## ⚙️ WordPress / Elementor integration
+
+You can enqueue the CSS and auto-inject a `window.__epvInit` bootstrapper.
+
+Then, create a shortcode to instantiate it dynamically inside Elementor.
+
+Full example available in the [Italian README](./README_IT.md) → _“WordPress (WP) / Elementor”_ section.
+
+---
+
+## 🧪 CLI Tool
 
 ```bash
 npx @codecorn/euro-plate-validator "AB 123 CD" --countries IT,FR,DE --type car --pretty
 ```
 
-Opzioni:
+**Options:**
 
-- `--countries` / `-c`: lista di country code (comma-sep)
-- `--type` / `-t`: `car` | `motorcycle` | `any` (default: `any`)
-- `--pretty` / `-p`: output leggibile
+- `--countries` / `-c` → comma-separated list of country codes
+- `--type` / `-t` → `car`, `motorcycle`, or `any`
+- `--pretty` / `-p` → human-readable output
 
-Exit code: `0` se valido, `1` se non valido, `2` argomenti errati.
+Exit codes:
 
-**Esempi CLI:**
-
-```bash
-# Car IT
-npx euro-plate-validator "AB 123 CD" --countries IT --type car --pretty
-
-# Moto IT
-npx euro-plate-validator "AA 12345" --countries IT --type motorcycle --pretty
-
-# UK / IE
-npx euro-plate-validator "AB12 CDE" --countries UK,IE --type any
-```
+- `0` → valid
+- `1` → invalid
+- `2` → bad arguments
 
 ---
 
@@ -166,39 +256,46 @@ npx euro-plate-validator "AB12 CDE" --countries UK,IE --type any
 
 ---
 
+## 🧾 Changelog (highlights)
+
+### 1.0.12
+
+- NEW → `autoFocusOnInit` (default: `false`) — prevents autofocus on init.
+- NEW → `preserveInputAttrs` — keeps external input `id`/`name` intact.
+- UX → renamed CSS classes from `.iti__*` → `.epv__*`.
+- Dependencies → auto-loads `Inputmask` UMD via CDN; supports manual injection and CDN override.
+- I18n → IT / EN / AUTO (auto-detect from browser locale).
+- UX stability → dynamic placeholder, country-based formatter, debounce system.
+
+### 1.0.10–11
+
+- CSS/Assets consolidation.
+- Added Client SDK + autoload fallback.
+- Updated README, docs, and npm package.
+
+---
+
 ## 📝 License
 
-MIT © [CodeCorn™](https://codecorn.it)
-
-Distribuito sotto licenza [MIT](LICENSE).
+MIT © [CodeCorn™](https://codecorn.it) — see [LICENSE](LICENSE)
 
 ---
 
 ## 👤 Maintainer
 
-<div style="display: flex; justify-content: space-between; align-items: center;"> 
-  <div> 
-    <p><strong>👨‍💻 Federico Girolami</strong></p> 
-    <p><strong>Full Stack Developer</strong> | <strong>System Integrator</strong> | <strong>Digital Solution Architect</strong> 🚀</p> 
-    <p>📫 <strong>Get in Touch</strong></p> 
-    <p>🌐 <strong>Website</strong>: <a href="https://codecorn.it">codecorn.it</a> *(Under Construction)*</p> 
-    <p>📧 <strong>Email</strong>: <a href="mailto:f.girolami@codecorn.it">f.girolami@codecorn.it</a></p> 
-    <p>🐙 <strong>GitHub</strong>: <a href="https://github.com/fgirolami29">github.com/fgirolami29</a></p> 
-  </div> 
-  <div style="text-align: center;">
-    <a href="https://www.codecorn.it"> 
-      <img src="https://codecorn.it/wp-content/uploads/2025/05/CODECORN-trasp-qhite.png" alt="Code Corn Logo"  width="250px" height="90px" style="margin-top:30px;margin-bottom:20px;"/>
-    </a> 
-    <a href="https://github.com/fgirolami29"> 
-      <img src="https://avatars.githubusercontent.com/u/68548715?s=200&v=4" alt="Federico Girolami Avatar" style="border-radius: 50%; width: 125px; height: 125px;border: 5px solid gold" /> 
-    </a> 
-  </div> 
-</div>
+**Federico Girolami**
+Full-Stack Developer • System Integrator • Digital Solution Architect 🚀
+🌐 [codecorn.it](https://codecorn.it)
+📧 [f.girolami@codecorn.it](mailto:f.girolami@codecorn.it)
+🐙 [github.com/fgirolami29](https://github.com/fgirolami29)
 
 ---
 
-### 🤝 Contribute
+## 🤝 Contributing
 
-Pull request benvenute. Per grosse modifiche apri una issue prima di iniziare.
+Pull requests are welcome.
+For major changes, please open an issue first.
 
-> Powered by CodeCorn™ 🚀
+> Powered by **CodeCorn™** 🚀
+
+---

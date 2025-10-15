@@ -58,6 +58,8 @@ export type EuroPlateOptions = {
     inputmask?: string; // default jsDelivr UMD
   };
   i18n?: I18nCode; // <— NEW (default: 'AUTO')
+  /** Se true, imposta il focus sull’input all’inizializzazione. Default: false */
+  autoFocusOnInit?: boolean;
 };
 
 const ALL_COUNTRIES = supportedCountries as readonly CountryKey[];
@@ -232,6 +234,7 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
     logger,
     deps,
     debug = false,
+    autoFocusOnInit = false,
   } = opts || ({} as EuroPlateOptions);
   let lang: Lang = pickLang(i18n);
 
@@ -571,7 +574,7 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
         <div class="epv__flag-box"><div class="epv__flag epv__${iso}"></div></div>
         <div class="country-name">${countryName(lang, cc)}</div>
         <div class="country-code">${cc}</div>`;
-      div.onclick = () => selectCountry(cc);
+      div.onclick = () => selectCountry(cc); // farà focus (interazione utente)
       frag.appendChild(div);
     }
 
@@ -691,7 +694,7 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
     }
   };
 
-  function selectCountry(code: "AUTO" | string) {
+  function selectCountry(code: "AUTO" | string, doFocus = true) {
     // normalizza/valida
     let next: "AUTO" | CountryKey = "AUTO";
     if (code !== "AUTO") {
@@ -720,7 +723,8 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
       button.setAttribute("aria-expanded", "false");
     }
 
-    input.focus();
+    // 👇 focus solo se booleano true esplicito
+    if (doFocus === true) input.focus();
   }
 
   const instance: EuroPlateInstance = {
@@ -739,9 +743,9 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
       DBG = !!on;
     },
 
-    // 👇 AGGIUNGI QUESTO (ti mancava nel type)
+    // 3) in setMode mantieni il focus (interazione esplicita)
     setMode(m: "AUTO" | string) {
-      selectCountry(m);
+      selectCountry(m); // focus = true (default)
     },
 
     setI18n(code) {
@@ -774,9 +778,10 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
   input.addEventListener("input", validateNow as any);
   input.addEventListener("blur", validateNow as any);
 
+  // 4) all’init evita il focus
   renderDropdown();
-  //instance.setCountry(selected);
-  selectCountry(mode); // ok: la funzione normalizza e imposta selected ("AUTO" | CountryKey)
+  selectCountry(mode, !!autoFocusOnInit); // 👈 niente autofocus all’avvio // ok: la funzione normalizza e imposta selected ("AUTO" | CountryKey)
+
   log.notify?.("EuroPlate pronto ✅", "success");
 
   return instance;
