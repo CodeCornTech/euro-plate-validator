@@ -1,85 +1,52 @@
-// src/client/europlate.client.ts
-// Minimal client SDK (mask + validate + UI opzionale) — dependency-light
-// Usa IM UMD su window.Inputmask (injectabile), nessun hardcode di DOM/paesi.
+/**
+ * EuroPlate Client SDK — src/client/europlate.client.ts
+ * Copyright (c) 2021-2026 Federico Girolami <f.girolami@codecorn.it>
+ * MIT License - https://opensource.org/license/mit/
+ * - UI opzionale (wrapper/DOM) + maschera + validazione.
+ * - Dipendenze esterne autocaricabili (Inputmask, jQuery, Toastr) via jsDelivr.
+ * - Nessun hardcode di paesi/DOM nel core (tutto iniettato via EuroMod).
+ *
+ * Manutenzione:
+ * - Tutti i CDN sono centralizzati in `cdnURLs` (single source of truth).
+ * - I getter `getIM/getJQ/getToastr` leggono prima da `opts.deps`, poi da `window`.
+ * - Per Inputmask UMD gestiamo sia chiamabile che costruttore (call/new).
+ * - Usare SEMPRE `hasIMBound/getIMBound` dentro l’istanza (no variabili globali mutate).
+ * - Logger di base (console o esterno) e logger Toastr (se richiesto e disponibile).
+ * - I18n minimale (it/en) con possibilità di estensione.
+ *
+ * Pubblico: types, createEuroPlate()
+ * Interno: helpers (cdn, loaders, logger, i18n, dom)
+ */
 import type { CountryKey } from "../countries.js";
 import {
-  FLAG_MAP, // TODO: ALLINEARE O RIMUOVERE
+  //FLAG_MAP, // TODO: ALLINEARE O RIMUOVERE
   COUNTRY_NAMES, // TODO: ALLINEARE O RIMUOVERE VEDI LINEA :393 const { ... COUNTRY_NAMES } = EuroMod;
   supportedCountries,
   normalizeCode,
   getCountryName,
 } from "../countries.js";
 
-function loadScriptOnce(src: string): Promise<void> {
-  if (!src) return Promise.resolve();
-  if (document.querySelector(`script[src="${src}"]`)) return Promise.resolve();
-  return new Promise((res, rej) => {
-    const s = document.createElement("script");
-    s.src = src;
-    s.async = true;
-    s.crossOrigin = "anonymous";
-    s.onload = () => res();
-    s.onerror = () => rej(new Error("Failed " + src));
-    document.head.appendChild(s);
-  });
-}
-function loadCssOnce(href: string): Promise<void> {
-  if (!href) return Promise.resolve();
-  if (document.querySelector(`link[rel="stylesheet"][href="${href}"]`)) return Promise.resolve();
-  return new Promise((res, rej) => {
-    const l = document.createElement("link");
-    l.rel = "stylesheet";
-    l.href = href;
-    l.crossOrigin = "anonymous";
-    l.onload = () => res();
-    l.onerror = () => rej(new Error("Failed " + href));
-    document.head.appendChild(l);
-  });
-}
-const cdnURLs = {
-  basePath: "https://cdn.jsdelivr.net/npm/",
-  jquery: { v: "jquery@3.7.1", JS: "/dist/jquery.min.js" },
-  toastr: { v: "toastr@2.1.4", JS: "/build/toastr.min.js", CSS: "/build/toastr.min.css" },
-  inputmask: { v: "inputmask@5.0.9", JS: "/dist/inputmask.min.js"},
-};
+/* ============================================================
+ * Tipi PUBBLICI (API surface)
+ * ============================================================ */
 
-async function ensureDeps(opts: EuroPlateOptions) {
-  const wantJQ = opts.autoLoadDeps?.jquery === true;
-  const wantToastr = opts.autoLoadDeps?.toastr === true;
-
-  const jqueryUrl =
-    opts.cdn?.jquery ?? "https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js";
-  const toastrJsUrl =
-    opts.cdn?.toastrJs ?? "https://cdn.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.js";
-  const toastrCssUrl =
-    opts.cdn?.toastrCss ?? "https://cdn.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.css";
-
-  // jQuery (solo se richiesto e non presente)
-  if (wantJQ && !(globalThis as any).jQuery) {
-    try {
-      await loadScriptOnce(jqueryUrl);
-    } catch {}
-  }
-  // Toastr (solo se richiesto e non presente)
-  if (wantToastr && !(globalThis as any).toastr) {
-    try {
-      await Promise.all([loadCssOnce(toastrCssUrl), loadScriptOnce(toastrJsUrl)]);
-    } catch {}
-  }
-}
-
-type Lang = "it" | "en";
+/** Lingue supportate dall’SDK. */
 export type I18nCode = "AUTO" | "IT" | "EN";
 
+/** Tipi veicolo supportati dal validatore. */
 export type VehicleType = "any" | "car" | "bike";
+
+/** Interfaccia logger esterno compatibile. */
 export type Logger = {
   debug?: (...a: any[]) => void;
   info?: (...a: any[]) => void;
   warn?: (...a: any[]) => void;
   error?: (...a: any[]) => void;
+  /** Tipo libero lato SDK; verrà normalizzato lato toastr. */
   notify?: (msg: string, type?: string) => void;
 };
 
+/** Riferimenti UI opzionali (se non si usa `wrapper`). */
 export type EuroPlateUI = {
   flagIcon?: HTMLElement;
   flagLabel?: HTMLElement;
@@ -87,58 +54,480 @@ export type EuroPlateUI = {
   button?: HTMLElement;
   status?: HTMLElement;
 };
-
+/** Opzioni di configurazione per `createEuroPlate` (client-side SDK). */
 export type EuroPlateOptions = {
-  i18n?: I18nCode; // <— NEW (default: 'AUTO')
+  /** Lingua/i18n del widget.
+   *  - "AUTO": deduce da `navigator.language` (it → "it" altrimenti "en").
+   *  - "IT" | "EN": forza la lingua.
+   *  @default "AUTO"
+   */
+  i18n?: I18nCode;
+  /** Input esterno già presente nel DOM (alternativa a `wrapper`).
+   *  Se passato, l’SDK non genera markup ma usa questo input.
+   */
   input?: HTMLInputElement; // era required → ora opzionale (se usi wrapper)
+
+  /** Wrapper in cui generare automaticamente la UI.
+   *  - string: CSS selector (es. "#my-wrapper")
+   *  - HTMLElement: nodo esistente
+   *  - false: disabilita auto-build (usa `input`)
+   *  @default false
+   */
   wrapper?: string | HTMLElement | false; // 👈 selector, nodo o false (default)
-  /** Nuovi: attributi input */
-  inputId?: string; // default: derivato da wrapper/id → "epv-plate-xxxx"
-  inputName?: string; // default: derivato da id oppure "plate"
-  preserveInputAttrs?: boolean; //Se true, non sovrascrive id/name quando l'input è esterno. Default: false (sovrascrive)
-  ui?: EuroPlateUI; // opzionale (UI pronta)
-  allowedCountries?: string[]; // default: tutte
-  mode?: "AUTO" | string; // default: "AUTO"
-  vehicleType?: VehicleType; // default: "any"
-  placeholders?: { auto?: string }; // default: "AA 999 AA / AA-999-AA / 9999 AAA"
-  normalize?: (code: string) => string; // default: GB->UK
-  formatters?: Record<string, (s: string) => string>; // per-CC
-  timings?: { debounce?: number; clear?: number }; // default: 80/60
-  autoFocusOnInit?: boolean; // Se true, imposta il focus sull’input all’inizializzazione. Default: false
-  deps?: { inputmask?: any }; // opzionale (se non c’è su window)
-  // 👉 Autoload delle dipendenze (true di default)
+
+  /** ID forzato da assegnare all’input generato/esterno.
+   *  Se `preserveInputAttrs` è true e l’input ha già un id, non lo sovrascrive.
+   */
+  inputId?: string;
+
+  /** name forzato da assegnare all’input generato/esterno.
+   *  Se `preserveInputAttrs` è true e l’input ha già un name, non lo sovrascrive.
+   */
+  inputName?: string;
+
+  /** Se true, non sovrascrive `id`/`name` su input esterni già valorizzati.
+   *  @default false
+   */
+  preserveInputAttrs?: boolean;
+
+  /** Riferimenti a elementi UI opzionali (se non si usa `wrapper`). */
+  ui?: EuroPlateUI;
+
+  /** Lista bianca di paesi consentiti (ISO-like: IT, FR, …).
+   *  Se omessa, usa tutti i paesi supportati da EuroMod.
+   */
+  allowedCountries?: string[];
+
+  /** Modalità iniziale.
+   *  - "AUTO": tenta il match e adatta mask/placeholder dinamicamente
+   *  - codice paese (es. "IT") per forzare una nazione fissa
+   *  @default "AUTO"
+   */
+  mode?: "AUTO" | string;
+
+  /** Tipo veicolo da passare al validatore (se supportato). @default "any" */
+  vehicleType?: VehicleType;
+
+  /** Placeholder personalizzabili. default: "AA 999 AA / AA-999-AA / 9999 AAA" */
+  placeholders?: { auto?: string };
+
+  /** Normalizzatore codici paese (es. GB→UK). */
+  normalize?: (code: string) => string;
+
+  /** Formatter per country code (applicato a input/paste). */
+  formatters?: Record<string, (s: string) => string>;
+
+  /** Timing UI: debounce applicazione mask e clear. @default {debounce:80,clear:60} */
+  timings?: { debounce?: number; clear?: number };
+
+  /** Se true, applica focus all’input all’init. @default false */
+  autoFocusOnInit?: boolean;
+
+  /** Dipendenze iniettate (per test o per ambienti bundler).
+   *  - `inputmask`: factory/constructor UMD di Inputmask
+   */
+  deps?: { inputmask?: any };
+
+  /** Flag di autoload per dipendenze esterne.
+   *  @default {inputmask:true,jquery:false,toastr:false}
+   */
   autoLoadDeps?: {
-    inputmask?: boolean; // default: true
-    jquery?: boolean; // default: false
-    toastr?: boolean; // default: false
+    inputmask?: boolean;
+    jquery?: boolean;
+    toastr?: boolean;
   };
-  // 👉 CDN override (se vuoi cambiare l’URL)
+
+  /** Override di CDN per ogni dipendenza (se serve self-hosting). */
   cdn?: {
-    inputmask?: string; // default jsDelivr UMD
-    jquery?: string; // default: jsDelivr
-    toastrJs?: string; // default: jsDelivr
-    toastrCss?: string; // default: jsDelivr
+    inputmask?: string;
+    jquery?: string;
+    toastrJs?: string;
+    toastrCss?: string;
   };
-  debug?: boolean; // default: false (messaggi console) | ATTIVA IL LOGGER IN CONSOLE / TOASTR SE PRESENTE nel window
-  /** Dipendenze opzionali per logger */
-  /** Se true e non passi un logger, userà jQuery (se presente/caricato) */
-  useJqueryLogger?: boolean; // default: false
-  /** Se true e non passi un logger, userà Toastr (se presente/caricato) */
-  useToastrLogger?: boolean; // default: false
-  logger?: Logger; // opzionale
+
+  /** Se true abilita messaggi di debug (console/toastr). @default false */
+  debug?: boolean;
+
+  /** Se true, tenta di usare Toastr come logger di default:
+   *  - forza best-effort jQuery+Toastr se non presenti (rispettando CDN)
+   *  - se viene passato `logger`, ha precedenza
+   *  @default false
+   */
+  useToastrLogger?: boolean;
+
+  /** Logger esterno opzionale (interna/console compat). */
+  logger?: Logger;
 };
 
+/** Istanza runtime del widget EuroPlate. */
+export type EuroPlateInstance = {
+  /** Imposta una nazione fissa (es. "IT") oppure "AUTO". */
+  setCountry: (code: "AUTO" | string) => void;
+
+  /** Limita i paesi selezionabili/validabili. */
+  setAllowed: (codes: string[]) => void;
+
+  /** Cambia il tipo di veicolo (pass-through a validazione). */
+  setVehicleType: (t: VehicleType) => void;
+
+  /** Attiva/disattiva debug logging. */
+  setDebug: (on: boolean) => void;
+
+  /** Cambia la modalità (come `setCountry`, mantenendo il focus). */
+  setMode: (m: "AUTO" | string) => void;
+
+  /** Cambia lingua runtime (placeholder, label, dropdown). */
+  setI18n: (code: I18nCode) => void;
+
+  /** Valida il contenuto attuale dell’input, aggiornando UI. */
+  validate: () => { ok: boolean; country?: string; value: string };
+
+  /** Distrugge listeners e rimuove mask. */
+  destroy: () => void;
+
+  /** Ritorna la lingua corrente (“it” | “en”). */
+  getI18n: () => Lang;
+};
+// --- fine tipi pubblici ---
+
+/* ============================================================
+ * Interni: CDN + loaders + getters + ensure deps
+ * Extra opzionali (se servono più avanti)
+ * **Preload**: prima di `appendChild` puoi verificare e/o aggiungere un `<link rel="preload" as="script">` / `as="style"`.
+ * **AbortSignal**: se vuoi abortire manualmente, estendi le opzioni con `signal?: AbortSignal` e fai `signal.addEventListener("abort", …rej…)`.
+ * ============================================================ */
+
+/** @internal */
+const cdnURLs = {
+  base: "https://cdn.jsdelivr.net/npm/",
+  jquery: { v: "jquery@3.7.1", JS: "/dist/jquery.min.js" },
+  toastr: { v: "toastr@2.1.4", JS: "/build/toastr.min.js", CSS: "/build/toastr.min.css" },
+  inputmask: { v: "inputmask@5.0.9", JS: "/dist/inputmask.min.js" },
+};
+
+/** @internal */
+type LoadScriptOptions = {
+  /** Imposta <script type="module"> */
+  module?: boolean;
+  /** crossorigin (default: "anonymous") */
+  crossOrigin?: "" | "anonymous" | "use-credentials";
+  /** integrity SRI */
+  integrity?: string;
+  /** CSP nonce da applicare al tag */
+  nonce?: string;
+  /** Attributi extra pass-through (data-*, ecc.) */
+  attrs?: Record<string, string>;
+  /** Timeout hard-fail (ms). 0 = no timeout. Default: 15000 */
+  timeoutMs?: number;
+};
+
+/** @internal */
+type LoadCssOptions = {
+  /** media attribute (es. "print", "(prefers-color-scheme:dark)") */
+  media?: string;
+  /** crossorigin (default: "anonymous") */
+  crossOrigin?: "" | "anonymous" | "use-credentials";
+  /** integrity SRI */
+  integrity?: string;
+  /** CSP nonce da applicare al tag */
+  nonce?: string;
+  /** Attributi extra pass-through (data-*, ecc.) */
+  attrs?: Record<string, string>;
+  /** Timeout hard-fail (ms). 0 = no timeout. Default: 15000 */
+  timeoutMs?: number;
+};
+
+/** Cache per prevenire doppi insert e coalescare chiamate concorrenti */
+const inFlightScripts = new Map<string, Promise<void>>();
+const inFlightCss = new Map<string, Promise<void>>();
+
+/** Carica uno <script> esterno una sola volta (idempotente+concurrency-safe).
+ *  @internal
+ *  @param src URL assoluto/relativo dello script
+ *  @returns Promise risolta quando `onload` fires (o noop se già presente)
+ */
+export function loadScriptOnce(src: string, opt: LoadScriptOptions = {}): Promise<void> {
+  if (!src || typeof document === "undefined") return Promise.resolve();
+
+  // già nel DOM?
+  if (document.querySelector(`script[src="${src}"]`)) return Promise.resolve();
+
+  // chiamata già in corso?
+  const pending = inFlightScripts.get(src);
+  if (pending) return pending;
+
+  const p = new Promise<void>((res, rej) => {
+    const s = document.createElement("script");
+
+    // base attrs
+    s.src = src;
+    s.async = true;
+    s.crossOrigin = opt.crossOrigin ?? "anonymous";
+    if (opt.module) s.type = "module";
+    if (opt.integrity) s.integrity = opt.integrity;
+    if (opt.nonce) s.nonce = opt.nonce;
+    s.setAttribute("data-loaded-by", "EuroPlate");
+    if (opt.attrs) for (const [k, v] of Object.entries(opt.attrs)) s.setAttribute(k, v);
+
+    let t: number | undefined;
+    if ((opt.timeoutMs ?? 15000) > 0) {
+      t = window.setTimeout(() => {
+        s.onload = null;
+        s.onerror = null;
+        try {
+          s.remove();
+        } catch {}
+        rej(new Error(`Timeout loading script: ${src}`));
+      }, opt.timeoutMs ?? 15000);
+    }
+
+    s.onload = () => {
+      if (t) clearTimeout(t);
+      res();
+    };
+    s.onerror = () => {
+      if (t) clearTimeout(t);
+      rej(new Error(`Failed ${src}`));
+    };
+
+    document.head.appendChild(s);
+  }).finally(() => inFlightScripts.delete(src));
+
+  inFlightScripts.set(src, p);
+  return p;
+}
+
+/**
+ *  @internal Carica un <link rel="stylesheet"> una sola volta (idempotente+concurrency-safe).
+ *  @param href URL del CSS
+ *  @returns Promise risolta quando `onload` fires (o noop se già presente)
+ */
+export function loadCssOnce(href: string, opt: LoadCssOptions = {}): Promise<void> {
+  if (!href || typeof document === "undefined") return Promise.resolve();
+
+  // già nel DOM?
+  if (document.querySelector(`link[rel="stylesheet"][href="${href}"]`)) return Promise.resolve();
+
+  // chiamata già in corso?
+  const pending = inFlightCss.get(href);
+  if (pending) return pending;
+
+  const p = new Promise<void>((res, rej) => {
+    const l = document.createElement("link");
+    l.rel = "stylesheet";
+    l.href = href;
+    l.crossOrigin = opt.crossOrigin ?? "anonymous";
+    if (opt.integrity) l.integrity = opt.integrity;
+    if (opt.nonce) l.nonce = opt.nonce;
+    if (opt.media) l.media = opt.media;
+    l.setAttribute("data-loaded-by", "EuroPlate");
+    if (opt.attrs) for (const [k, v] of Object.entries(opt.attrs)) l.setAttribute(k, v);
+
+    let t: number | undefined;
+    if ((opt.timeoutMs ?? 15000) > 0) {
+      t = window.setTimeout(() => {
+        l.onload = null;
+        l.onerror = null;
+        try {
+          l.remove();
+        } catch {}
+        rej(new Error(`Timeout loading css: ${href}`));
+      }, opt.timeoutMs ?? 15000);
+    }
+
+    l.onload = () => {
+      if (t) clearTimeout(t);
+      res();
+    };
+    l.onerror = () => {
+      if (t) clearTimeout(t);
+      rej(new Error(`Failed ${href}`));
+    };
+
+    document.head.appendChild(l);
+  }).finally(() => inFlightCss.delete(href));
+
+  inFlightCss.set(href, p);
+  return p;
+}
+
+/** @internal */
+type Lang = "it" | "en";
+
+// --- getters tip-safe su deps/globale --------------------------------
+
+/** @internal */
+type Deps = EuroPlateOptions["deps"];
+
+/** @internal */
+type IMInstance = { mask(el: HTMLInputElement): void; remove?: () => void };
+
+/** @internal * Signature runtime-accurata per Inputmask UMD: callable e constructable. */
+type IMGlobal = { (opts?: any): IMInstance; new (opts?: any): IMInstance };
+
+/** @internal * Restituisce jQuery da window (jQuery|$) se presente. */
+const getJQ = (): JQueryStatic | undefined => window.jQuery ?? window.$;
+
+/** @internal * True se jQuery è già disponibile. */
+const hasJQ = (): boolean => !!getJQ();
+
+/** @internal * Restituisce toastr da window, se presente. */
+const getToastr = (): Toastr | undefined => window.toastr;
+
+/** @internal * True se toastr è già disponibile. */
+const hasToastr = (): boolean => !!getToastr();
+
+/** @internal * Restituisce Inputmask UMD da deps o window.Inputmask (callable/new). */
+const getIM = (d?: Deps): IMGlobal | undefined =>
+  (d?.inputmask as unknown as IMGlobal) ?? ((window as any).Inputmask as IMGlobal | undefined);
+
+/** @internal * True se Inputmask è disponibile (deps o globale). */
+const hasIM = (d?: Deps): boolean => !!getIM(d);
+// --- fine getters ---
+
+/**
+ * @internal
+ * Garantisce che Inputmask sia disponibile secondo i flag `autoLoadDeps`.
+ *  - Non blocca l’inizializzazione della UI.
+ *  - Prima controlla deps/window, poi carica da CDN se consentito.
+ */
+async function ensureInputmask(opts: EuroPlateOptions, log: Logger) {
+  // se già presente (deps o global), fine
+  if (hasIM(opts.deps)) return; // già presente (deps o globale)
+
+  const want = (opts.autoLoadDeps?.inputmask ?? true) !== false;
+  if (!want) {
+    log.warn?.("Inputmask not found and autoload disabled");
+    return;
+  }
+
+  const url = opts.cdn?.inputmask ?? cdnURLs.base + cdnURLs.inputmask.v + cdnURLs.inputmask.JS;
+  try {
+    const cspNonce =
+      (window as any).__CSP_NONCE__ ||
+      document.querySelector('meta[name="csp-nonce"]')?.getAttribute("content") ||
+      undefined;
+
+    await loadScriptOnce(url, { module: false, nonce: cspNonce }).then(() =>
+      log.debug?.("Inputmask loaded")
+    );
+  } catch {
+    log.warn?.("Failed to load Inputmask from CDN");
+  }
+}
+
+/**
+ * @internal
+ * Garantisce jQuery, rispettando `autoLoadDeps.jquery`.
+ * Nota: usato come dipendenza di toastr 2.x.
+ */
+async function ensureJQuery(opts: EuroPlateOptions, log: Logger) {
+  // prima di importare jQuery controlla se c’è già (evita conflitti)
+  if (hasJQ()) return;
+
+  const want = (opts.autoLoadDeps?.jquery ?? true) !== false;
+  if (!want) {
+    log.warn?.("jQuery not found and autoload disabled");
+    return;
+  }
+
+  const url = opts.cdn?.jquery ?? cdnURLs.base + cdnURLs.jquery.v + cdnURLs.jquery.JS;
+
+  try {
+    const cspNonce =
+      (window as any).__CSP_NONCE__ ||
+      document.querySelector('meta[name="csp-nonce"]')?.getAttribute("content") ||
+      undefined;
+
+    await loadScriptOnce(url, { module: false, nonce: cspNonce }).then(() =>
+      log.debug?.("jQuery loaded")
+    );
+  } catch {
+    log.warn?.("Failed to load jQuery from CDN");
+  }
+}
+
+/**
+ * @internal
+ *  Garantisce toastr (JS+CSS), rispettando `autoLoadDeps.toastr`.
+ *  Dipende da jQuery: lo assicura prima di caricare toastr.
+ */
+async function ensureToastr(opts: EuroPlateOptions, log: Logger) {
+  // prima di importare toastr controlla se c’è già (evita conflitti)
+  if (hasToastr()) return;
+
+  // Toastr 2.x dipende da jQuery → assicurati jQuery PRIMA
+  await ensureJQuery(opts, log);
+
+  const want = (opts.autoLoadDeps?.toastr ?? true) !== false;
+  if (!want) {
+    log.warn?.("toastr not found and autoload disabled");
+    return;
+  }
+
+  const css = opts.cdn?.toastrCss ?? cdnURLs.base + cdnURLs.toastr.v + cdnURLs.toastr.CSS;
+  const js = opts.cdn?.toastrJs ?? cdnURLs.base + cdnURLs.toastr.v + cdnURLs.toastr.JS;
+
+  try {
+    const cspNonce =
+      (window as any).__CSP_NONCE__ ||
+      document.querySelector('meta[name="csp-nonce"]')?.getAttribute("content") ||
+      undefined;
+
+    await Promise.all([
+      loadCssOnce(css, { media: "all" }).then(() => log.debug?.("toastr CSS loaded")),
+      loadScriptOnce(js, { module: false, nonce: cspNonce }).then(() =>
+        log.debug?.("toastr loaded")
+      ),
+    ]);
+  } catch {
+    log.warn?.("Failed to load toastr from CDN");
+  }
+}
+
+/**
+ * @internal
+ * Orchestratore dipendenze:
+ *  - Se `useToastrLogger` è true → forza tentativo jQuery+toastr.
+ *  - Altrimenti rispetta `autoLoadDeps`.
+ *  - Inputmask è indipendente dal logger.
+ */
+async function ensureDeps(opts: EuroPlateOptions, log: Logger) {
+  // Se l’utente ha chiesto esplicitamente il logger toastr, *forziamo* il tentativo di caricare jQuery+toastr
+  if (opts.useToastrLogger) {
+    await ensureToastr(
+      { ...opts, autoLoadDeps: { ...opts.autoLoadDeps, jquery: true, toastr: true } },
+      log
+    );
+  } else {
+    // altrimenti rispetta i flag autoLoadDeps
+    await ensureJQuery(opts, log);
+    await ensureToastr(opts, log); // se già presente non fa nulla
+  }
+
+  // Inputmask: sempre secondo flag, ed è indipendente dal **logger**
+  await ensureInputmask(opts, log);
+}
+
+/* ============================================================
+ * Interni: i18n
+ * ============================================================ */
+
+/** @internal */
 const ALL_COUNTRIES = supportedCountries as readonly CountryKey[];
 
 function isCountryKey(x: string): x is CountryKey {
   return (ALL_COUNTRIES as readonly string[]).includes(x);
 }
 
-// 👇 chiavi scalari (niente 'countries')
+/** @internal * 👇 chiavi scalari (niente 'countries') */
 type DictScalarKey = "auto" | "placeholderAuto" | "valid" | "invalid" | "checked";
 
-// Nomi paese localizzati (facoltativi per ciascun cc)
+/** @internal * Nomi paese localizzati (facoltativi per ciascun cc) */
 type CountryNameDict = Partial<Record<CountryKey, string>>;
+
+//prettier-ignore
+/** @internal */
 const DICT: Record<
   Lang,
   {
@@ -157,35 +546,9 @@ const DICT: Record<
     invalid: "Non valida",
     checked: "Controllati",
     countries: {
-      IT: "Italia",
-      UK: "Regno Unito",
-      DE: "Germania",
-      FR: "Francia",
-      ES: "Spagna",
-      PT: "Portogallo",
-      NL: "Paesi Bassi",
-      BE: "Belgio",
-      CH: "Svizzera",
-      AT: "Austria",
-      IE: "Irlanda",
-      LU: "Lussemburgo",
-      DK: "Danimarca",
-      SE: "Svezia",
-      NO: "Norvegia",
-      FI: "Finlandia",
-      PL: "Polonia",
-      CZ: "Cechia",
-      SK: "Slovacchia",
-      HU: "Ungheria",
-      RO: "Romania",
-      BG: "Bulgaria",
-      SI: "Slovenia",
-      HR: "Croazia",
-      GR: "Grecia",
-      LT: "Lituania",
-      LV: "Lettonia",
-      EE: "Estonia",
-      UA: "Ucraina",
+      IT: "Italia", UK: "Regno Unito", DE: "Germania", FR: "Francia", ES: "Spagna", PT: "Portogallo", NL: "Paesi Bassi", BE: "Belgio", CH: "Svizzera", AT: "Austria", IE: "Irlanda",
+      LU: "Lussemburgo", DK: "Danimarca", SE: "Svezia", NO: "Norvegia", FI: "Finlandia", PL: "Polonia", CZ: "Cechia", SK: "Slovacchia", HU: "Ungheria", RO: "Romania", BG: "Bulgaria", 
+      SI: "Slovenia", HR: "Croazia", GR: "Grecia", LT: "Lituania", LV: "Lettonia", EE: "Estonia", UA: "Ucraina" 
     },
   },
   en: {
@@ -194,40 +557,14 @@ const DICT: Record<
     valid: "Valid",
     invalid: "Invalid",
     checked: "Checked",
-    countries: {
-      IT: "Italy",
-      UK: "United Kingdom",
-      DE: "Germany",
-      FR: "France",
-      ES: "Spain",
-      PT: "Portugal",
-      NL: "Netherlands",
-      BE: "Belgium",
-      CH: "Switzerland",
-      AT: "Austria",
-      IE: "Ireland",
-      LU: "Luxembourg",
-      DK: "Denmark",
-      SE: "Sweden",
-      NO: "Norway",
-      FI: "Finland",
-      PL: "Poland",
-      CZ: "Czechia",
-      SK: "Slovakia",
-      HU: "Hungary",
-      RO: "Romania",
-      BG: "Bulgaria",
-      SI: "Slovenia",
-      HR: "Croatia",
-      GR: "Greece",
-      LT: "Lithuania",
-      LV: "Latvia",
-      EE: "Estonia",
-      UA: "Ukraine",
+    countries:{
+      IT: "Italy", UK: "United Kingdom", DE: "Germany", FR: "France", ES: "Spain", PT: "Portugal", NL: "Netherlands", BE: "Belgium", CH: "Switzerland", AT: "Austria", IE: "Ireland", 
+      LU: "Luxembourg", DK: "Denmark", SE: "Sweden", NO: "Norway", FI: "Finland", PL: "Poland", CZ: "Czechia", SK: "Slovakia", HU: "Hungary", RO: "Romania", BG: "Bulgaria", SI: "Slovenia", 
+      HR: "Croatia", GR: "Greece", LT: "Lithuania", LV: "Latvia", EE: "Estonia", UA: "Ukraine" 
     },
   },
 };
-
+/** @internal */
 function pickLang(code: I18nCode): Lang {
   if (code === "IT") return "it";
   if (code === "EN") return "en";
@@ -235,12 +572,12 @@ function pickLang(code: I18nCode): Lang {
   return nav.startsWith("it") ? "it" : "en";
 }
 
-// ✅ ora t() restituisce sempre string
+/** @internal ✅ ora t() restituisce sempre string */
 function t(lang: Lang, key: DictScalarKey): string {
   return DICT[lang][key];
 }
 
-// ✅ countryName legge prima i18n, poi fallback EN/core
+/** @internal ✅ countryName legge prima i18n, poi fallback EN/core */
 function countryName(lang: Lang, cc: string): string {
   const norm = normalizeCode(cc) as CountryKey | undefined;
   if (!norm) return cc.toUpperCase();
@@ -249,23 +586,75 @@ function countryName(lang: Lang, cc: string): string {
   return getCountryName(norm) ?? COUNTRY_NAMES[norm] ?? norm;
 }
 
-export type EuroPlateInstance = {
-  setCountry: (code: "AUTO" | string) => void;
-  setAllowed: (codes: string[]) => void;
-  setVehicleType: (t: VehicleType) => void;
-  setDebug: (on: boolean) => void;
-  setMode: (m: "AUTO" | string) => void; // 👈 aggiunto
-  setI18n: (code: I18nCode) => void; // 👈 mancava
-  validate: () => { ok: boolean; country?: string; value: string };
-  destroy: () => void;
-  getI18n: () => Lang;
-};
+/* ============================================================
+ * Interni: logger
+ * ============================================================ */
 
+//prettier-ignore
+/** Logger di base: inoltra su console o su logger esterno se fornito.
+ *  @internal
+ *  - On/Off controllato da `DBG`.
+ *  - `notify` passa-attraverso (no-op se mancante).
+ */
+function makeBaseLogger(prefix: string, DBG: boolean, ext?: Logger): Logger {
+  const cons = console;
+  return {
+    debug: (...a) => { if (DBG) (ext?.debug ?? cons.debug)(prefix, ...a); },
+    info: (...a) => { if (DBG) (ext?.info ?? cons.info)(prefix, ...a);},
+    warn: (...a) => { (ext?.warn ?? cons.warn)(prefix, ...a); },
+    error: (...a) => { (ext?.error ?? cons.error)(prefix, ...a); },
+    notify: (msg, type = "info") => { if (DBG) (ext?.notify ?? (() => {}))(msg, type); },
+  };
+}
+
+//prettier-ignore
+/** Logger Toastr:
+ *  @internal
+ *  - Normalizza `type: string` in {info, success, warning, error}.
+ *  - Fallback su console se toastr assente o in errore.
+ */
+function makeToastrLogger(prefix: string, DBG: boolean): Logger {
+  const t = getToastr();
+  const cons = console;
+  const withPrefix = (msg: string) => (prefix ? `${prefix} ${msg}` : msg);
+
+  return {
+    debug: (...a) => { if (DBG) (cons.debug)(prefix, ...a); },
+    info:  (...a) => { if (DBG) (cons.info )(prefix, ...a); },
+    warn:  (...a) => { (cons.warn)(prefix, ...a); },
+    error: (...a) => { (cons.error)(prefix, ...a); },
+
+    // 👇 firma allargata a `string`, con mapping interno ai 4 livelli toastr
+    notify: (msg: string, type: string = "info") => {
+      if (!t) { if (DBG) cons.info(withPrefix(`[${type}] ${msg}`)); return; }
+
+      // normalizza qualunque string in uno dei 4 tipi toastr
+      const allowed = new Set(["info","success","warning","error"]);
+      const key = allowed.has(type) ? (type as "info"|"success"|"warning"|"error") : "info";
+
+      try {
+        t.options = t.options || {};
+        t.options.positionClass = t.options.positionClass || "toast-bottom-right";
+        (t as any)[key](withPrefix(msg));
+      } catch {
+        if (DBG) cons.info(withPrefix(`[${type}] ${msg}`));
+      }
+    },
+  };
+}
+
+/* ============================================================
+ * Interni: DOM helpers
+ * ============================================================ */
+
+/** @internal */
 function randSuffix(n = 6) {
   return Math.random()
     .toString(36)
     .slice(2, 2 + n);
 }
+
+/** @internal */
 function deriveDefaultIds(root?: HTMLElement | null, wrapperOpt?: string | HTMLElement | false) {
   // prova a usare l'id del wrapper se c'è
   const wId =
@@ -279,27 +668,24 @@ function deriveDefaultIds(root?: HTMLElement | null, wrapperOpt?: string | HTMLE
   return { inputId, inputName };
 }
 
-//prettier-ignore
-function makeToastrLogger(logPrefix='[EPL]',DBG: boolean): Logger {
-  const t: any = (globalThis as any).toastr;
-  const has = !!t;
-  return {
-    debug: (...a) => { if (DBG) console.debug(logPrefix, ...a); },
-    info:  (...a) => { if (DBG) console.info(logPrefix, ...a); has && t.info?.(a.join(" ")); },
-    warn:  (...a) => { if (DBG) console.warn(logPrefix, ...a); has && t.warning?.(a.join(" ")); },
-    error: (...a) => { console.error(logPrefix, ...a); has && t.error?.(a.join(" ")); },
-    notify: (msg, type = "info") => {
-      if (!has) { if (DBG) console.log(logPrefix, msg); return; }
-      const fn = (t[type] || t.info).bind(t);
-      try { fn(String(msg)); } catch {}
-    },
-  };
-}
+/* ============================================================
+ * ENTRYPOINT PUBBLICO
+ * ============================================================ */
 
+/** Crea e inizializza il widget EuroPlate.
+ *  - Se `wrapper` è truthy, genera markup/accessori nel wrapper.
+ *  - Se `input` è passato, usa quello e non crea markup.
+ *  - Autocarica dipendenze (Inputmask/jQuery/Toastr) secondo flags.
+ *  - Applica mask live in base al paese (AUTO o fisso).
+ *
+ *  @param EuroMod Modulo core con validate/getInputMask/getDisplayFormat/…
+ *  @param opts    Opzioni di configurazione (vedi `EuroPlateOptions`)
+ *  @returns       Istanza `EuroPlateInstance`
+ *  @throws        Error se wrapper/input non trovati o `EuroMod` incompleto
+ */
 export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlateInstance {
   const {
     i18n = "AUTO",
-    //input,
     wrapper = false, // 👈 AGGIUNTO: selector | HTMLElement | false
     ui = {},
     allowedCountries,
@@ -321,15 +707,11 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
     useToastrLogger = false,
   } = opts || ({} as EuroPlateOptions);
 
-  // kick-off best-effort (non blocca l’init)
-  try {
-    void ensureDeps(opts);
-  } catch {}
-  // prepara logger
-  let lang: Lang = pickLang(i18n);
-
   // ----- RIFERIMENTI UI -----
-  // TODO PERMETTERE DI DECIRE IL TYPE DELL INPUT (text/number/altro)?
+  let lang: Lang = pickLang(i18n); // lingua
+
+  let input_type: string = "text"; // TODO PERMETTERE DI DECIRE IL TYPE DELL INPUT (text/number/altro)?
+
   // riferimenti UI locali (li riempiremo da wrapper oppure da opts.ui)
   let input!: HTMLInputElement; // ← verrà assegnato
   let button: HTMLElement | undefined = ui.button ?? undefined;
@@ -337,6 +719,8 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
   let flagIcon: HTMLElement | undefined = ui.flagIcon ?? undefined;
   let flagLabel: HTMLElement | undefined = ui.flagLabel ?? undefined;
   let statusEl: HTMLElement | undefined = ui.status ?? undefined;
+  // NEW: wrapper element (se presente)
+  let wrapperEl: HTMLElement | null = null;
 
   // ----- AUTO-BUILD DOM SE wrapper È TRUTHY -----
   if (wrapper) {
@@ -360,7 +744,7 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
           <path d="M6 8l4 4 4-4" stroke="#6b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
       </button>
-      <input class="plate-input" type="text" placeholder="${t(lang, "placeholderAuto")}" autocomplete="off" />
+      <input class="plate-input" type="${input_type}" placeholder="${t(lang, "placeholderAuto")}" autocomplete="off" />
       <div class="dropdown" role="listbox" aria-label="Select country"></div>
     </div>
     <div class="status"></div>
@@ -385,15 +769,17 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
     // aggiorna anche opts per retro-compat (se altrove li leggi da opts)
     (opts as any).ui = { button, flagIcon, flagLabel, dropdown, status: statusEl };
     (opts as any).input = input;
-  } else {
-    // input esterno     // nessun wrapper → usa ciò che arriva da fuori (comportamento attuale)
 
+    // dopo aver ottenuto `root` e creato l’HTML
+    wrapperEl = root;
+  } else {
+    // input esterno — usa ciò che arriva da fuori
     input = (opts as any).input as HTMLInputElement;
     if (!input) throw new Error("Devi passare `input` o `wrapper`.");
 
     const preserve = !!opts.preserveInputAttrs;
 
-    // se l’utente ha passato inputId/inputName → applica secondo policy
+    // id/name secondo policy
     if (opts.inputId) {
       if (preserve) {
         if (!input.id) input.id = opts.inputId;
@@ -409,94 +795,59 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
       }
     }
 
-    // fallback di sicurezza se mancano entrambi
+    // wrapper: preferisci .plate-epv-wrapper, altrimenti parent
+    wrapperEl =
+      (input.closest(".plate-epv-wrapper") as HTMLElement | null) ??
+      (input.parentElement as HTMLElement | null) ??
+      null;
+
+    // fallback id/name se mancano
     if (!input.id || !input.name) {
-      const { inputId: defId, inputName: defName } = deriveDefaultIds(
-        input.closest<HTMLElement>(".plate-epv-wrapper") || input.parentElement,
-        false
-      );
+      const { inputId: defId, inputName: defName } = deriveDefaultIds(wrapperEl, false);
       if (!input.id) input.id = defId;
       if (!input.name) input.name = defName;
     }
-  }
 
-  // guard finali
-  if (!EuroMod?.validatePlate || !EuroMod?.getInputMask) {
-    throw new Error("EuroMod mancante o incompleto");
-  }
-  if (!input) throw new Error("Devi passare `input` o `wrapper`.");
-
-  // logger morbido
-  let DBG = !!debug;
-  const logPrefix = `[EPL:${input.id}]`;
-  //prettier-ignore
-  let log: Logger = {
-    debug: (...a) => { if (DBG) (opts.logger?.debug ?? console.debug)(logPrefix, ...a); },
-    info:  (...a) => { if (DBG) (opts.logger?.info  ?? console.info )(logPrefix, ...a); },
-    warn:  (...a) => { if (DBG) (opts.logger?.warn  ?? console.warn )(logPrefix, ...a); },
-    error: (...a) => { (opts.logger?.error ?? console.error)(logPrefix, ...a); },
-    notify: (msg, type = "info") => { if (DBG) (opts.logger?.notify ?? (()=>{}))(msg, type); },
-  };
-
-  //prettier-ignore
-  // se non è stato passato un logger e l’utente chiede Toastr, prova ad abilitarlo appena c’è
-  if (!opts.logger && useToastrLogger) {
-    // primo tentativo immediato
-    if ((globalThis as any).toastr) { log = makeToastrLogger(logPrefix,DBG); }
-    else {
-      // secondo tentativo “post-caricamento” (non blocca nulla)
-      setTimeout(() => {
-        if ((globalThis as any).toastr) {
-          log = makeToastrLogger(logPrefix,DBG);
-          log.info?.("Toastr logger attached");
-        }
-      }, 200);
+    // forza type (di default "text", oppure prendi da opts se lo esponi)
+    const inputType = (opts as any).inputType ?? "text";
+    try {
+      input.type = inputType;
+    } catch {
+      /* ignore invalid types */
     }
   }
 
-  // ---- Inputmask fallback loader ---------------------------------------------
-  let IM: any = deps?.inputmask ?? (globalThis as any).Inputmask;
-  let imReady = !!IM;
-  const wantAutoload = opts.autoLoadDeps?.inputmask !== false; // default: true
+  // ---------- LOGGER (ora abbiamo l'id)
+  let DBG = !!debug;
+  const logPrefix = input?.id ? `[EPL:${input.id}]` : "[EPL]";
+  let log: Logger = makeBaseLogger(logPrefix, DBG, logger);
 
-  const imCdnUrl =
-    opts.cdn?.inputmask ?? "https://cdn.jsdelivr.net/npm/inputmask@5.0.9/dist/inputmask.min.js";
+  // ---------- DEPS (fire & forget, con eventuale swap su toastr)
+  void ensureDeps(opts, log).then(() => {
+    if (useToastrLogger === true && getToastr() && !logger) {
+      log = makeToastrLogger(logPrefix, DBG);
+      log.info?.("Toastr logger attached");
+    }
+    // se IM arriva dopo e non siamo in AUTO, prova ad applicare la mask
+    if (hasIMBound() && selected !== "AUTO") {
+      try {
+        applyMaskDebounced(input, selected);
+      } catch {}
+    }
+  });
 
-  // Carica UMD async se non presente e autoload attivo
-  if (!IM && wantAutoload) {
-    const script = document.createElement("script");
-    script.src = imCdnUrl;
-    script.async = true;
-    script.crossOrigin = "anonymous";
-    script.onload = () => {
-      IM = (globalThis as any).Inputmask;
-      imReady = !!IM;
-      log.info?.("Inputmask caricato da CDN");
-      // se siamo già su un paese fisso, prova a (ri)applicare la maschera
-      if (IM && selected !== "AUTO") {
-        try {
-          applyMaskDebounced(input, selected);
-        } catch {}
-      }
-    };
-    script.onerror = () => {
-      log.warn?.("Caricamento Inputmask fallito (CDN)");
-    };
-    document.head.appendChild(script);
+  // ---------- BIND ai deps (closure; niente variabili globali mutate)
+  const getIMBound = () => getIM(deps);
+  const hasIMBound = () => hasIM(deps);
+
+  // ---------- EuroMod guard
+  if (!EuroMod?.validatePlate || !EuroMod?.getInputMask) {
+    throw new Error("EuroMod mancante o incompleto");
   }
 
-  function hasIM(): boolean {
-    return !!IM;
-  }
-
-  const {
-    supportedCountries,
-    getInputMask,
-    getDisplayFormat,
-    COUNTRY_NAMES,
-    FLAG_MAP,
-    validatePlate,
-  } = EuroMod;
+  // ---------- Stato/utility come li avevi...
+  const { supportedCountries, getInputMask, getDisplayFormat, FLAG_MAP, validatePlate } = EuroMod;
+  // ---------- fine stato EuroMod
 
   let selected: "AUTO" | CountryKey = (() => {
     if (mode === "AUTO") return "AUTO";
@@ -542,7 +893,7 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
   };
 
   function hardClearMask(el?: HTMLInputElement | null) {
-    if (!el || !IM) return;
+    if (!el || !hasIMBound()) return; // 👈 use the bound helper
     setTimeout(() => {
       try {
         (el as any)._imInstance?.remove?.();
@@ -562,22 +913,29 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
       .replace(/9\{(\d+)\}/g, (_, n) => "9".repeat(+n));
 
   const applyMaskDebounced = debounce((inputEl: HTMLInputElement, country: string) => {
-    if (!hasIM()) {
+    if (!hasIMBound()) {
       log.warn?.("Inputmask non disponibile: salto applyMask");
       return;
     }
-    if (!IM) return;
+    const IM = getIMBound()! as IMGlobal; // tipo: IMGlobal
+
+    if (!IM) {
+      log.warn?.("AGAIN: Inputmask non disponibile: RETURN!");
+      return;
+    }
+
     if (!inputEl || !country || country === "AUTO") {
       hardClearMaskDebounced(inputEl);
       return;
     }
+
     const spec = getInputMask(country);
     if (!spec) {
       hardClearMaskDebounced(inputEl);
       return;
     }
 
-    const opts = {
+    const optsIM = {
       mask: normalizePattern(spec.mask),
       keepStatic: spec.keepStatic ?? true,
       greedy: spec.greedy ?? false,
@@ -603,15 +961,18 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
       (inputEl as any).inputmask?.remove?.();
     } catch {}
 
-    let instance: any;
+    let instance: IMInstance;
     try {
-      instance = IM(opts);
+      // UMD spesso è callable
+      instance = IM(optsIM);
     } catch {
-      instance = new IM(opts);
+      // fallback costruttore
+      instance = new IM(optsIM);
     }
+
     instance.mask(inputEl);
     (inputEl as any)._imInstance = instance;
-    log.debug?.("mask:apply", country, opts.mask);
+    log.debug?.("mask:apply", country, optsIM.mask);
   }, timings.debounce);
 
   // setValidityUI
@@ -621,13 +982,21 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
     matchCountry: CountryKey | null,
     input: HTMLInputElement,
     status: HTMLElement | undefined,
-    lang: Lang
+    lang: Lang,
+    wrap?: HTMLElement | null // NEW
   ) {
+    // input
     input.classList.toggle("valid", !!ok);
     input.classList.toggle("invalid", !ok);
     input.setAttribute("aria-invalid", ok ? "false" : "true");
     input.setCustomValidity(ok ? "" : msg || "Invalid plate");
 
+    // wrapper (se presente)
+    if (wrap) {
+      wrap.classList.toggle("valid", !!ok);
+      wrap.classList.toggle("invalid", !ok);
+    }
+    // status
     if (!status) return;
 
     if (ok && matchCountry) {
@@ -689,7 +1058,10 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
     let raw = input.value;
 
     if (!raw.trim()) {
-      setValidityUI(false, "", null, input, statusEl, lang);
+      // setValidityUI(false, "", null, input, statusEl, lang, wrapperEl);
+      setValidityUI(true as any, "", null, input, statusEl, lang, wrapperEl);
+      input.classList.remove("valid", "invalid");
+      wrapperEl?.classList.remove("valid", "invalid");
 
       if (selected === "AUTO") {
         hardClearMaskDebounced(input);
@@ -722,7 +1094,7 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
         const formatted = fmtFor(match, input.value);
         if (formatted !== input.value) input.value = formatted;
 
-        setValidityUI(true, "", match, input, statusEl, lang);
+        setValidityUI(true, "", match, input, statusEl, lang, wrapperEl);
         setFlag(match, flagIcon, flagLabel, lang);
         applyMaskDebounced(input, match);
 
@@ -738,7 +1110,7 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
           ? `❌ ${t(lang, "invalid")} — ${t(lang, "checked")}: ${checkedArr.join(", ")}`
           : `❌ ${t(lang, "invalid")}`;
 
-        setValidityUI(false, msg, null, input, statusEl, lang);
+        setValidityUI(false, msg, null, input, statusEl, lang, wrapperEl);
 
         // In AUTO rimuovi eventuale mask “residua”
         if (selected === "AUTO") {
@@ -755,7 +1127,7 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
         ? `❌ ${t(lang, "invalid")} — ${t(lang, "checked")}: ${checkedArr.join(", ")}`
         : `❌ ${t(lang, "invalid")}`;
 
-      setValidityUI(false, msg, null, input, statusEl, lang);
+      setValidityUI(false, msg, null, input, statusEl, lang, wrapperEl);
 
       // In AUTO rimuovi eventuale mask “residua”
       if (selected === "AUTO") {
@@ -887,3 +1259,28 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
 
   return instance;
 }
+
+/* ============================================================
+ * NOTE STRUTTURALI
+ * - Tutto ciò che NON è esportato è considerato interno.
+ * - @internal aiuta i lettori; per l’elisione serve tsconfig/declaration maps.
+ * ============================================================ */
+
+/**
+ * Wrapper DOM
+ * - A runtime, se `wrapper` è fornito, viene generata la struttura:
+ *   .plate-epv-wrapper
+ *     .plate-epv
+ *       button.flag-btn > .epv__flag-box > .epv__flag
+ *       input.plate-input
+ *       .dropdown
+ *     .status
+ * - Classi di stato:
+ *   input: .valid / .invalid (aria-invalid aggiornato)
+ *   .dropdown: .open on/off
+ *   .status: .ok / .err
+ *
+ * Accessibilità:
+ * - `flag-btn` è `aria-haspopup="listbox"` + `aria-expanded`
+ * - `.dropdown` ha `role="listbox"` e item con `role="option"`
+ */

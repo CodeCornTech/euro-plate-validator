@@ -1,119 +1,69 @@
-.plate-epv-wrapper{
+/* ============================================================
+   EURO PLATE VALIDATOR – BASE STYLES
+   ============================================================ */
+
+/* --- Wrapper principale --- */
+.plate-epv-wrapper {
   width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
 }
+
+/* --- Contenitore interno (flag + input + dropdown) --- */
 .plate-epv {
-  position: relative;
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 8px;
-  border: 1px solid #d1d5db;
+  border: 1.5px solid #ccc;
   border-radius: 8px;
-  background: #fff;
-  width: 100%;
-  font-family:
-    system-ui,
-    -apple-system,
-    Segoe UI,
-    Roboto,
-    sans-serif;
-}
-.plate-epv:focus-within {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+  padding: 10px 14px;
+  transition:
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
+  background-color: #fff;
 }
 
-.flag-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
-  user-select: none;
-  /* TODO: width fissa o min-width? */
-  width: 30%;
-  padding: 4px 6px;
-  border-radius: 4px;
-  border: 1px solid transparent;
-  background: transparent;
-}
-.flag-btn:hover {
-  background: #f3f4f6;
-}
-.epv__flag {
-  zoom: 1.1;
-}
-.flag-label {
-  font-size: 12px;
-  color: #6b7280;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
+/* --- Input targa --- */
 .plate-input {
   flex: 1;
-  border: 0;
-  outline: 0;
-  font-size: 16px;
+  border: none;
+  outline: none;
+  font-size: 1rem;
+  background: transparent;
   letter-spacing: 0.5px;
-}
-.plate-input.valid {
-  color: #065f46;
-}
-.plate-input.invalid {
-  color: #991b1b;
+  /* TODO: width fissa o min-width? */
+  width: 30%;
 }
 
-.dropdown {
-  position: absolute;
-  z-index: 9999;
-  top: calc(100% + 6px);
-  left: 6px;
-  width: 320px;
-  max-height: 280px;
-  overflow: auto;
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-  display: none;
-}
-.dropdown.open {
-  display: block;
-}
-/* .country-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 10px;
-    cursor: pointer;
-} */
-.country-item:hover {
-  background: #f9fafb;
-}
-.country-name {
-  flex: 1;
-  font-size: 14px;
-}
-.country-code {
-  color: #6b7280;
-  font-size: 12px;
+/* --- Bottone bandiera --- */
+.flag-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.95rem;
+  padding: 0;
 }
 
-.hint {
-  margin-top: 8px;
-  font-size: 12px;
-  color: #6b7280;
+/* --- Flag + label --- */
+.epv__flag-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 20px;
+  overflow: hidden;
+  border-radius: 3px;
+  background-color: #eee;
 }
-.status {
-  margin-top: 8px;
-  font-size: 13px;
-}
-.status.ok {
-  color: #0f766e;
-}
-.status.err {
-  color: #b91c1c;
+
+.epv__flag {
+  width: 100%;
+  height: 100%;
+  zoom: 1.75;
 }
 /* Flag "Auto" = EU (SVG embedded, stessa size delle altre) */
 .epv__auto-eu,
@@ -126,31 +76,99 @@
   /* EU flag (blu + 12 stelle gialle semplificate) */
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 3 2'><rect width='3' height='2' fill='%23005BBB'/><g fill='%23FFD500' transform='translate(1.5,1)'><g id='s'><circle r='.06' transform='rotate(0) translate(0.7,0)'/></g><use href='%23s' transform='rotate(30)'/><use href='%23s' transform='rotate(60)'/><use href='%23s' transform='rotate(90)'/><use href='%23s' transform='rotate(120)'/><use href='%23s' transform='rotate(150)'/><use href='%23s' transform='rotate(180)'/><use href='%23s' transform='rotate(210)'/><use href='%23s' transform='rotate(240)'/><use href='%23s' transform='rotate(270)'/><use href='%23s' transform='rotate(300)'/><use href='%23s' transform='rotate(330)'/></g></svg>") !important;
 }
+/* --- Dropdown elenco nazioni --- */
 
-.epv__flag-box {
-  width: 20px;
-  margin-right: 0.5rem;
-  display: inline-flex;
+.dropdown {
+  position: absolute;
+  z-index: 9999;
+  left: 6px;
+  width: 320px;
+  max-height: 280px;
+  overflow: auto;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  display: none;
 }
+
+.dropdown.open {
+  display: block;
+}
+
 .country-item {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.3rem 0.4rem;
+  gap: 10px;
+  padding: 6px 10px;
   cursor: pointer;
+  transition: background-color 0.2s ease;
 }
+
 .country-item:hover {
-  background: #f6f6f7;
+  background-color: #f6f6f6;
 }
+
+/* --- Stato validazione testo --- */
+.status {
+  margin-top: 6px;
+  font-size: 0.9rem;
+  color: #555;
+}
+
 .status.ok {
   color: #198754;
 }
+
 .status.err {
   color: #dc3545;
 }
-input.valid {
-  border-color: #198754;
+
+/* ============================================================
+   INTERAZIONI E STATI
+   ============================================================ */
+
+/* --- Focus visivo (neutro) --- */
+.plate-epv:focus-within {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
 }
-input.invalid {
+
+/* --- Stato valido (verde) --- */
+.valid .plate-epv {
+  border-color: #198754;
+  box-shadow: 0 0 0 3px rgba(25, 135, 84, 0.25);
+}
+
+/* --- Stato non valido (rosso) --- */
+
+.invalid .plate-epv {
   border-color: #dc3545;
+  box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.25);
+}
+
+/* --- Transizione dolce per cambi di stato --- */
+.plate-epv {
+  transition:
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+/* ============================================================
+   ACCESSIBILITÀ E RESPONSIVE
+   ============================================================ */
+
+.plate-epv button:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+@media (max-width: 480px) {
+  .plate-epv {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .flag-btn {
+    justify-content: center;
+  }
 }

@@ -113,6 +113,7 @@
     "format:check": "prettier --check ."
   },
   "devDependencies": {
+    "@types/inputmask": "5.0.7",
     "@types/jquery": "3.5.33",
     "@types/node": "24.6.2",
     "@types/toastr": "2.1.43",

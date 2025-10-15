@@ -12,6 +12,8 @@
     "skipLibCheck": true,
     "checkJs": false,
     "resolveJsonModule": true,
+    "types": ["jquery", "toastr", "inputmask", "node", "sizzle", "json-schema", "estree"],
+
     "typeRoots": ["./types", "./node_modules/@types"],
     "importHelpers": true,
     "removeComments": false
