@@ -44,3 +44,5 @@ TODO*
 WIN*
 __STASH/**
 _FINAL_HTML/**
+*.zip
+releases/**

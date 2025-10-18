@@ -169,3 +169,5 @@ TODO*
 
 __STASH/**
 _FINAL_HTML/**
+*.zip
+releases/**
