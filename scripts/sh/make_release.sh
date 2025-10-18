@@ -8,11 +8,11 @@ set -Eeuo pipefail
 # 🔧 CONFIG
 #######################################
 SCRIPT_NAME="$(basename "$0")"
-SCRIPT_VERSION="2.5.0"
+SCRIPT_VERSION="2.6.1"
 SCRIPT_AUTHOR="Federico Girolami"
 SCRIPT_TEAM="Pytorchia™ Developers"
 SCRIPT_LICENSE="MIT License"
-SCRIPT_DESCRIPTION="Create a GitHub Release from package.json version, with guard-checks, optional auto-commit, tests, build, version bump, push + tags, and optional npm publish."
+SCRIPT_DESCRIPTION="Create a GitHub Release from package.json version, with guard-checks, optional auto-commit, tests, build, version bump, push + tags, optional npm publish, and changelog extraction from README."
 REPO_ROOT_DIR="./"
 
 # Release
@@ -37,19 +37,23 @@ COMMIT_FILES=()   # se vuoi selezionare file specifici
 COMMIT_MESSAGE="" # messaggio commit, se vuoto verrà chiesto
 
 RUN_TESTS=false
-TEST_SCRIPT="test:samples" # es . test o test:samples
+TEST_SCRIPT="test:samples" # es. test o test:samples
 
 RUN_BUILD=false
 BUILD_SCRIPT="build"
 
 BUMP_KIND="none" # none | patch | minor | major | prepatch | preminor | premajor | prerelease
-BUMP_PREID=""    # es . alpha , beta , rc
+BUMP_PREID=""    # es. alpha , beta , rc
 
 PUSH_AFTER=true
 
 NPM_PUBLISH=false
 NPM_ACCESS="public" # public | restricted
-NPM_TAG=""          # es . next
+NPM_TAG=""          # es. latest / next
+
+# Changelog from README
+CHANGELOG_FROM_README=false
+CHANGELOG_FILE="README.md"
 
 #######################################
 # 🎨 ANSI
@@ -95,11 +99,12 @@ die() {
 }
 
 run() {
+    # esegue i comandi preservando gli argomenti (niente eval)
     local -a cmd=("$@")
     if [[ "$DRY_RUN" == true ]]; then
         warn "DRY-RUN → ${cmd[*]}"
     else
-        dbg "exec → ${cmd[*]}"
+        #dbg "exec → ${cmd[*]}"
         "${cmd[@]}"
     fi
 }
@@ -112,7 +117,7 @@ trap 'err "Errore a riga $LINENO . Uscita ." ' ERR
 banner() {
     cat <<EOF
 ${GOLD}${BOLD}┌──────────────────────────────────────────────────────────┐${RESET}
-${GOLD}${BOLD}│  ${SOFT}Pytorchia™ Release Helper${RESET}${GOLD}${BOLD}                                │${RESET}
+${GOLD}${BOLD}│  ${SOFT}Pytorchia™ Release Helper${RESET}${GOLD}${BOLD}                               │${RESET}
 ${GOLD}${BOLD}└──────────────────────────────────────────────────────────┘${RESET}
 ${BOLD}$SCRIPT_NAME ${RESET}${ITA}v$SCRIPT_VERSION${RESET}  ${DIM}by $SCRIPT_AUTHOR  ·  $SCRIPT_TEAM${RESET}
 ${DIM}License:${RESET} $SCRIPT_LICENSE
@@ -142,39 +147,60 @@ ${BOLD}Flow / Guardie${RESET} :
   -d , --debug                Log verboso
       --force                 Bypassa guardie
       --allow-dirty-tag       Consente tag con tree sporco
-      --auto-chain            Se tree sporco , esegui catena commit → test → build → bump → push
+      --auto-chain            Se tree sporco: commit → test → build → bump → push
+      --auto-chain-nobump     Se tree sporco: commit → test → build → push
 
 ${BOLD}Commit / Test / Build${RESET} :
-      --commit-files "A B"    File da aggiungere al commit ( disattiva --commit-all )
-      --no-commit-all         Non usare git add -A ( default è on )
+      --commit-files "A B"    File per il commit (disattiva --commit-all)
+      --no-commit-all         Non usare git add -A
       --commit-message "msg"  Messaggio commit
-      --run-tests             Esegui test ( npm run <script> )
-      --test-script <name>    Script test ( default : $TEST_SCRIPT )
-      --run-build             Esegui build ( npm run <script> )
-      --build-script <name>   Script build ( default : $BUILD_SCRIPT )
+      --run-tests             Esegui test (npm run <script>)
+      --test-script <name>    Script test (default: test:samples)
+      --run-build             Esegui build (npm run <script>)
+      --build-script <name>   Script build (default: build)
 
 ${BOLD}Version bump${RESET} :
       --bump <kind>           none | patch | minor | major | prepatch | preminor | premajor | prerelease
-      --preid <id>            Pre-id per prerelease , es . alpha , beta , rc
+      --preid <id>            Pre-id per prerelease (alpha/beta/rc)
 
 ${BOLD}Push / Publish${RESET} :
-      --no-push               Non pushare dopo commit / bump
+      --no-push               Non pushare dopo commit/bump
       --npm-publish           Pubblica su npm
-      --npm-access <mode>     public | restricted ( default : $NPM_ACCESS )
-      --npm-tag <tag>         npm dist-tag , es . next
+      --npm-access <mode>     public | restricted (default: public)
+      --npm-tag <tag>         npm dist-tag (es. latest/next)
+
+${BOLD}Changelog${RESET} :
+      --changelog-from-readme Estrai le note dal README per la versione (### vX.Y.Z o ### X.Y.Z)
+      --changelog-file <path> README alternativo (default: README.md)
+
+${BOLD}Preset${RESET} :
+      --preset node-lib       Abilita: --auto-chain --run-tests --run-build --bump patch --npm-publish --npm-access public --npm-tag latest --yes
 
 ${BOLD}Varie${RESET} :
   -V , --version-script       Stampa versione script
   -h , --help                 Aiuto
 
 ${BOLD}Esempio${RESET} :
-  $SCRIPT_NAME --auto-chain --run-tests --run-build --bump patch --npm-publish --yes
+  $SCRIPT_NAME --preset node-lib --version 1.0.12 --changelog-from-readme --assets "dist/*"
 EOF
 }
 
 #######################################
-# 🧮 Arg parsing
+# 🧮 Arg parsing + preset
 #######################################
+set_preset_node_lib() {
+    AUTO_CHAIN=true
+    RUN_TESTS=true
+    TEST_SCRIPT="test:samples"
+    RUN_BUILD=true
+    BUILD_SCRIPT="build"
+    BUMP_KIND="patch"
+    NPM_PUBLISH=true
+    NPM_ACCESS="public"
+    NPM_TAG="latest"
+    YES_ALL=true
+}
+
 parse_args() {
     while (($#)); do
         case "$1" in
@@ -238,7 +264,11 @@ parse_args() {
             AUTO_CHAIN=true
             shift
             ;;
-
+        --auto-chain-nobump)
+            AUTO_CHAIN=true
+            BUMP_KIND="none"
+            shift
+            ;;
         --commit-files)
             IFS=' ' read -r -a COMMIT_FILES <<<"${2:?}"
             COMMIT_ALL=false
@@ -296,6 +326,22 @@ parse_args() {
             shift 2
             ;;
 
+        --changelog-from-readme)
+            CHANGELOG_FROM_README=true
+            shift
+            ;;
+        --changelog-file)
+            CHANGELOG_FILE="${2:?}"
+            shift 2
+            ;;
+
+        --preset)
+            case "${2:?}" in
+            node-lib) set_preset_node_lib ;;
+            *) die "Preset sconosciuto: $2" ;;
+            esac
+            shift 2
+            ;;
         --)
             shift
             break
@@ -306,7 +352,7 @@ parse_args() {
 }
 
 #######################################
-# 🧪 Guard-checks
+# 🧪 Guard-checks / helpers
 #######################################
 require_bin() { command -v "$1" >/dev/null 2>&1 || die "Manca dipendenza : $1"; }
 
@@ -380,13 +426,9 @@ resolve_version() {
     is_semver "$VERSION_TAG" || die "Versione non in formato semver : $VERSION_TAG"
 }
 
-detect_prerelease_flag() {
-    [[ "$VERSION_TAG" == *"-"* ]] && echo "--prerelease" || echo ""
-}
+detect_prerelease_flag() { [[ "$VERSION_TAG" == *"-"* ]] && echo "--prerelease" || echo ""; }
 
-tag_exists() {
-    git -C "$REPO_ROOT_DIR" show-ref --tags --verify --quiet "refs/tags/v$VERSION_TAG"
-}
+tag_exists() { git -C "$REPO_ROOT_DIR" show-ref --tags --verify --quiet "refs/tags/v$VERSION_TAG"; }
 
 ensure_tag() {
     if tag_exists; then
@@ -399,6 +441,33 @@ ensure_tag() {
         else
             die "Tag necessario non creato"
         fi
+    fi
+}
+
+#######################################
+# 🧾 Changelog extraction (README)
+#######################################
+extract_changelog_from_readme() {
+    local file="$1" ver="$2"
+    [[ -f "$file" ]] || die "README non trovato: $file"
+
+    # Estrae dalla riga '### vX.Y.Z' o '### X.Y.Z' fino alla riga della prossima '### '
+    local content
+    content="$(awk -v ver="$ver" '
+    BEGIN{ start=0 }
+    # Se abbiamo iniziato e troviamo una nuova sezione ###, fermiamo l output
+    start==1 && $0 ~ /^###[[:space:]]/ { exit }
+    # Riconosci l intestazione della versione (con o senza v)
+    $0 ~ "^###[[:space:]]*(v)?" ver "[[:space:]]*$" { start=1; print; next }
+    # Se siamo all interno della sezione, stampa
+    start==1 { print }
+  ' "$file")"
+
+    if [[ -z "$content" ]]; then
+        warn "Nessuna sezione changelog trovata per ${ver} in $file (cerco anche v${ver})"
+        echo ""
+    else
+        echo "$content"
     fi
 }
 
@@ -417,12 +486,12 @@ auto_chain_if_needed() {
     fi
 
     if [[ "$AUTO_CHAIN" != true ]]; then
-        die "Working tree sporco . Committa o usa --allow-dirty-tag / --force . ( oppure passa --auto-chain )"
+        die "Working tree sporco . Committa o usa --allow-dirty-tag / --force . (oppure passa --auto-chain)"
     fi
 
     info "Avvio catena automatica su working tree sporco …"
 
-    # 1 . Commit
+    # Commit
     if [[ -z "$COMMIT_MESSAGE" ]]; then
         if [[ "$YES_ALL" == true ]]; then
             COMMIT_MESSAGE="chore: prepare release"
@@ -442,34 +511,32 @@ auto_chain_if_needed() {
 
     run git -C "$REPO_ROOT_DIR" commit -m "$COMMIT_MESSAGE" || warn "Nessuna modifica da committare"
 
-    # 2 . Tests
+    # Tests
     if [[ "$RUN_TESTS" == true ]]; then
         info "Eseguo test : npm run $TEST_SCRIPT"
         run bash -lc "cd \"$REPO_ROOT_DIR\" && npm run \"$TEST_SCRIPT\""
     fi
 
-    # 3 . Build
+    # Build
     if [[ "$RUN_BUILD" == true ]]; then
         info "Eseguo build : npm run $BUILD_SCRIPT"
         run bash -lc "cd \"$REPO_ROOT_DIR\" && npm run \"$BUILD_SCRIPT\""
     fi
 
-    # 4 . Bump
+    # Bump
     if [[ "$BUMP_KIND" != "none" ]]; then
-        local -a bump_cmd=(npm version "$BUMP_KIND")
-        [[ -n "$BUMP_PREID" ]] && bump_cmd+=(--preid "$BUMP_PREID")
-        bump_cmd+=(-m "chore(release): v%s — $COMMIT_MESSAGE")
-        info "Bump versione : ${bump_cmd[*]}"
-        run bash -lc "cd \"$REPO_ROOT_DIR\" && ${bump_cmd[*]}"
-
-        # aggiorna VERSION_TAG dalla nuova package.json
+        local bump_cmd="npm version \"$BUMP_KIND\""
+        [[ -n "$BUMP_PREID" ]] && bump_cmd+=" --preid \"$BUMP_PREID\""
+        bump_cmd+=" -m \"chore(release): v%s — $COMMIT_MESSAGE\""
+        info "Bump versione : $bump_cmd"
+        run bash -lc "cd \"$REPO_ROOT_DIR\" && $bump_cmd"
         VERSION_TAG="$(get_pkg_version)"
         ok "Nuova versione : v$VERSION_TAG"
     else
         info "Bump versione disattivato"
     fi
 
-    # 5 . Push
+    # Push
     if [[ "$PUSH_AFTER" == true ]]; then
         run git -C "$REPO_ROOT_DIR" push
         run git -C "$REPO_ROOT_DIR" push --tags || true
@@ -486,40 +553,61 @@ do_release() {
     require_bin node
     require_bin npm
 
-    REPO_ROOT_DIR="${REPO_ROOT_DIR:-$(find_git_root)}"
+    if [[ "$REPO_ROOT_DIR" == "./" || -z "$REPO_ROOT_DIR" ]]; then
+        REPO_ROOT_DIR="$(find_git_root)"
+    fi
     [[ -z "$REPO_ROOT_DIR" ]] && die "Non è stata trovata una repo Git valida"
     assert_repo
     cd "$REPO_ROOT_DIR"
-
     assert_branch
-    # Se serve , esegue commit → test → build → bump → push
+
+    # Se serve, esegue commit → test → build → bump → push
     auto_chain_if_needed
 
-    # Se non abbiamo bumpato , risolvi la versione attuale
+    # Se non abbiamo bumpato, risolvi la versione corrente
     [[ -z "$VERSION_TAG" ]] && resolve_version
+
+    # Changelog extraction (se richiesto e non già passato via --notes/--notes-file)
+    if [[ "$CHANGELOG_FROM_README" == true && -z "$RELEASE_NOTES" && -z "$RELEASE_NOTES_FILE" ]]; then
+        local file_path="$CHANGELOG_FILE"
+        [[ ! -f "$file_path" ]] && file_path="$REPO_ROOT_DIR/$CHANGELOG_FILE"
+        local md
+        md="$(extract_changelog_from_readme "$file_path" "$VERSION_TAG")"
+        if [[ -n "$md" ]]; then
+            RELEASE_NOTES="$md"
+            ok "Note di rilascio estratte da $file_path → sezione ${BOLD}### v$VERSION_TAG${RESET}"
+        else
+            warn "Impossibile estrarre note da README . Valuta --notes-file o --generate-notes"
+        fi
+    fi
 
     read_notes
     local preflag
     preflag="$(detect_prerelease_flag)"
 
-    # Tag GH : se npm version ha già creato il tag , lo vedremo esistente
+    # Tag GH: se npm version ha già creato il tag, lo vedremo esistente
     ensure_tag
 
-    # Assets
+    # Assets (compat bash 3.2; niente mapfile, niente echo; safe con spazi)
     local -a assets_arg=()
     if [[ -n "$ASSETS_GLOB" ]]; then
-        shopt -s nullglob
-        mapfile -t files < <(cd "$REPO_ROOT_DIR" && compgen -G "$ASSETS_GLOB" || true)
-        shopt -u nullglob
-        if ((${#files[@]})); then
-            for f in "${files[@]}"; do assets_arg+=(--attach "$f"); done
-            info "Allegati : ${files[*]}"
+        # compgen -G espande il glob in maniera robusta (0..N righe, una per match)
+        local -a matches=()
+        while IFS= read -r line; do
+            matches+=("$line")
+        done < <(compgen -G -- "$ASSETS_GLOB")
+
+        if ((${#matches[@]})); then
+            for f in "${matches[@]}"; do
+                assets_arg+=(--attach "$f")
+            done
+            info "Allegati : ${matches[*]}"
         else
             warn "Nessun file combacia con glob : $ASSETS_GLOB"
         fi
     fi
 
-    # Note
+    # Notes
     local -a notes_arg=()
     if [[ -n "$RELEASE_NOTES" ]]; then
         notes_arg=(--notes "$RELEASE_NOTES")
@@ -542,10 +630,10 @@ do_release() {
 
     # NPM publish opzionale
     if [[ "$NPM_PUBLISH" == true ]]; then
-        local -a pub=(npm publish --access "$NPM_ACCESS")
-        [[ -n "$NPM_TAG" ]] && pub+=(--tag "$NPM_TAG")
-        info "Pubblico su npm : ${pub[*]}"
-        run bash -lc "cd \"$REPO_ROOT_DIR\" && ${pub[*]}"
+        local pub="npm publish --access \"$NPM_ACCESS\""
+        [[ -n "$NPM_TAG" ]] && pub+=" --tag \"$NPM_TAG\""
+        info "Pubblico su npm : $pub"
+        run bash -lc "cd \"$REPO_ROOT_DIR\" && $pub"
         ok "npm publish completato"
     fi
 }
@@ -557,5 +645,5 @@ main() {
     parse_args "$@"
     do_release
 }
-
 main "$@"
+#######################################
