@@ -1,3 +1,5 @@
+import type { SmartLogFn, BadgeFn } from "./logger/ensureBadgeLogger.js";
+export declare function ensureDepsOnce(opts: EuroPlateOptions, log: Logger, BADGE?: BadgeFn, LOG?: SmartLogFn): Promise<void>;
 /** Lingue supportate dall’SDK. */
 export type I18nCode = "AUTO" | "IT" | "EN";
 /** Tipi veicolo supportati dal validatore. */

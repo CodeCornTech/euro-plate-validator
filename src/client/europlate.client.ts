@@ -28,6 +28,29 @@ import {
   getCountryName,
 } from "../countries.js";
 
+// 👇 in cima al file (scope di modulo)
+let __depsOnce: Promise<void> | null = null;
+
+export async function ensureDepsOnce(opts: EuroPlateOptions, log: Logger, BADGE: BadgeFn = () => {}, LOG: SmartLogFn = () => {}) {
+  if (!__depsOnce) {
+    __depsOnce = (async () => {
+      BADGE("EPV[Deps]", "Ensuring dependencies…", "info");
+      try {
+        await ensureDeps(opts, log, BADGE, LOG);
+        BADGE("EPV[Deps]", "Dependencies ensured successfully", "ok");
+      } catch (err) {
+        BADGE("EPV[Deps]", `Error during ensureDeps: ${(err as Error)?.message || err}`, "err");
+        throw err;
+      } finally {
+        BADGE("EPV[Deps]", "ensureDeps finished", "debug");
+      }
+    })();
+  } else {
+    BADGE("EPV[Deps]", "Deps ensure already in-flight / done", "debug");
+  }
+  return __depsOnce;
+}
+
 /* ============================================================
  * Tipi PUBBLICI (API surface)
  * ============================================================ */
@@ -1112,13 +1135,13 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
   let log: Logger = makeBaseLogger(logPrefix, DBG, logger);
 
   // ---------- DEPS (fire & forget, ora con BADGE/LOG in chiaro)
-  void ensureDeps(opts, log, BADGE, LOG).then(() => {
-    if (useToastrLogger === true && getToastr() && !logger) {
+  void ensureDepsOnce(opts, log, BADGE, LOG).then(() => {
+    const G = window as any;
+
+    if (useToastrLogger && getToastr() && !logger && !G.CC_EPV_TOASTR_LOGGER_ATTACHED) {
       log = makeToastrLogger(logPrefix, DBG);
-      //log.info?.("Toastr logger attached");
-      BADGE("EuroPlate", "Toastr logger attached", "debug");
-      (opts.autoLoadDeps ||= {}).toastr = false;
-      (opts.autoLoadDeps ||= {}).jquery = false;
+      G.CC_EPV_TOASTR_LOGGER_ATTACHED = true;
+      BADGE("EuroPlate", "Toastr logger attached (once)", "debug");
     }
     // se IM arriva dopo e non siamo in AUTO, prova ad applicare la mask
     if (hasIMBound() && selected !== "AUTO") {
@@ -1320,7 +1343,8 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
         iconEl.textContent = ok ? "✓" : "!";
       } else if (statusIcon === "pill") {
         iconEl.classList.add("pill", ok ? "ok" : "err");
-        iconEl.textContent = ok ? "OK" : "ERR";
+        //iconEl.textContent = ok ? "OK" : "ERR";
+        iconEl.textContent = ok ? "✓" : "!";
       } else {
         iconEl.textContent = "";
       }

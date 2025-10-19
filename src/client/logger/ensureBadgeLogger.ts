@@ -25,12 +25,12 @@ export function ensureBadgeLogger(prefix: string, debug: boolean) {
   function localBADGE(mod: string, msg: string, colorKey?: ColorKey | string) {
     if (!debug) return;
     const c = G.CC_COLORS[colorKey as keyof CCColors] || colorKey || G.CC_COLORS.gold;
-    const txc = [G.CC_COLORS["gold"], G.CC_COLORS["info"], G.CC_COLORS["ok"]].includes(c) ? "#000" : "#fff";
+    const txc = [G.CC_COLORS["bg1"], G.CC_COLORS["bg1"]].includes(c) ? "#fff" : "#000";
     //const tag = `%c CodeCorn™ ${mod} %c ${prefix} ${msg} %c`;
     // ⚠️ niente prefix qui: lo aggiunge il wrapper BADGE sotto
     const tag = `%c CodeCorn™ ${mod} %c ${msg} %c`;
     const css1 = `background:${G.CC_COLORS.bg1};color:#fff;padding:3px 6px;border-radius:4px 0 0 4px;`;
-    const css2 = `background:${c};color:${txc};font-weight:bold;padding:3px 6px;`;
+    const css2 = `background:${c};color:${txc};font-weight:bold;padding:3px 6px;text-transform:uppercase;`;
     const css3 = `background:${G.CC_COLORS.bg3};color:#fff;padding:3px 6px;border-radius:0 4px 4px 0;`;
     try {
       console.log(tag, css1, css2, css3);
