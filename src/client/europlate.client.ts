@@ -17,6 +17,8 @@
  * Pubblico: types, createEuroPlate()
  * Interno: helpers (cdn, loaders, logger, i18n, dom)
  */
+import { ensureBadgeLogger } from "./logger/ensureBadgeLogger.js";
+import type { ColorKey, CCColors, SmartLogFn, BadgeFn } from "./logger/ensureBadgeLogger.js";
 import type { CountryKey } from "../countries.js";
 import {
   //FLAG_MAP, // TODO: ALLINEARE O RIMUOVERE
@@ -462,21 +464,24 @@ const hasIM = (d?: Deps): boolean => !!getIM(d);
  *  - Non blocca l’inizializzazione della UI.
  *  - Prima controlla deps/window, poi carica da CDN se consentito.
  */
-async function ensureInputmask(opts: EuroPlateOptions, log: Logger) {
+async function ensureInputmask(opts: EuroPlateOptions, log: Logger, BADGE: BadgeFn = () => {}, LOG: SmartLogFn = () => {}) {
   // se già presente (deps o global), fine
-  if (hasIM(opts.deps)) return; // già presente (deps o globale)
+  if (hasIM(opts.deps)) {
+    BADGE("Deps", "Inputmask present (deps/global)", "info");
+    return;
+  } // già presente (deps o globale)
 
   const want = (opts.autoLoadDeps?.inputmask ?? true) !== false;
   if (!want) {
-    log.warn?.("Inputmask not found and autoload disabled");
+    BADGE("Deps", "Inputmask autoload disabled", "warn");
     return;
   }
 
   const url = opts.cdn?.inputmask ?? cdnURLs.base + cdnURLs.inputmask.v + cdnURLs.inputmask.JS;
   try {
-    await loadScriptOnce(url, { module: false }).then(() => log.debug?.("Inputmask loaded"));
+    await loadScriptOnce(url, { module: false }).then(() => BADGE("Deps", "Inputmask loaded", "info"));
   } catch {
-    log.warn?.("Failed to load Inputmask from CDN");
+    BADGE("Deps", "Failed to load Inputmask from CDN", "err");
   }
 }
 
@@ -485,22 +490,25 @@ async function ensureInputmask(opts: EuroPlateOptions, log: Logger) {
  * Garantisce jQuery, rispettando `autoLoadDeps.jquery`.
  * Nota: usato come dipendenza di toastr 2.x.
  */
-async function ensureJQuery(opts: EuroPlateOptions, log: Logger) {
+async function ensureJQuery(opts: EuroPlateOptions, log: Logger, BADGE: BadgeFn = () => {}, LOG: SmartLogFn = () => {}) {
   // prima di importare jQuery controlla se c’è già (evita conflitti)
-  if (hasJQ()) return;
+  if (hasJQ()) {
+    BADGE("Deps", "jQuery present", "info");
+    return;
+  }
 
   const want = (opts.autoLoadDeps?.jquery ?? true) !== false;
   if (!want) {
-    log.warn?.("jQuery not found and autoload disabled");
+    BADGE("Deps", "jQuery autoload disabled", "warn");
     return;
   }
 
   const url = opts.cdn?.jquery ?? cdnURLs.base + cdnURLs.jquery.v + cdnURLs.jquery.JS;
 
   try {
-    await loadScriptOnce(url, { module: false }).then(() => log.debug?.("jQuery loaded"));
+    await loadScriptOnce(url, { module: false }).then(() => BADGE("Deps", "jQuery loaded", "info"));
   } catch {
-    log.warn?.("Failed to load jQuery from CDN");
+    BADGE("Deps", "Failed to load jQuery from CDN", "err");
   }
 }
 
@@ -509,16 +517,19 @@ async function ensureJQuery(opts: EuroPlateOptions, log: Logger) {
  *  Garantisce toastr (JS+CSS), rispettando `autoLoadDeps.toastr`.
  *  Dipende da jQuery: lo assicura prima di caricare toastr.
  */
-async function ensureToastr(opts: EuroPlateOptions, log: Logger) {
+async function ensureToastr(opts: EuroPlateOptions, log: Logger, BADGE: BadgeFn = () => {}, LOG: SmartLogFn = () => {}) {
   // prima di importare toastr controlla se c’è già (evita conflitti)
-  if (hasToastr()) return;
+  if (hasToastr()) {
+    BADGE("Deps", "Toastr present", "info");
+    return;
+  }
 
   // Toastr 2.x dipende da jQuery → assicurati jQuery PRIMA
-  await ensureJQuery(opts, log);
+  await ensureJQuery(opts, log, BADGE, LOG);
 
   const want = (opts.autoLoadDeps?.toastr ?? true) !== false;
   if (!want) {
-    log.warn?.("toastr not found and autoload disabled");
+    BADGE("Deps", "Toastr autoload disabled", "warn");
     return;
   }
 
@@ -526,9 +537,10 @@ async function ensureToastr(opts: EuroPlateOptions, log: Logger) {
   const js = opts.cdn?.toastrJs ?? cdnURLs.base + cdnURLs.toastr.v + cdnURLs.toastr.JS;
 
   try {
-    await Promise.all([loadCssOnce(css, { media: "all" }).then(() => log.debug?.("toastr CSS loaded")), loadScriptOnce(js, { module: false }).then(() => log.debug?.("toastr loaded"))]);
+    await Promise.all([loadCssOnce(css, { media: "all" }).then(() => BADGE("Deps", "toastr CSS loaded", "gold")), loadScriptOnce(js, { module: false }).then(() => BADGE("Deps", "toastr loaded", "gold"))]);
+    BADGE("Deps", "Toastr loaded (+CSS)", "info");
   } catch {
-    log.warn?.("Failed to load toastr from CDN");
+    BADGE("Deps", "Failed to load Toastr from CDN", "err");
   }
 }
 
@@ -539,18 +551,18 @@ async function ensureToastr(opts: EuroPlateOptions, log: Logger) {
  *  - Altrimenti rispetta `autoLoadDeps`.
  *  - Inputmask è indipendente dal logger.
  */
-async function ensureDeps(opts: EuroPlateOptions, log: Logger) {
+async function ensureDeps(opts: EuroPlateOptions, log: Logger, BADGE: BadgeFn = () => {}, LOG: SmartLogFn = () => {}) {
   // Se l’utente ha chiesto esplicitamente il logger toastr, *forziamo* il tentativo di caricare jQuery+toastr
-  if (opts.useToastrLogger) {
-    await ensureToastr({ ...opts, autoLoadDeps: { ...opts.autoLoadDeps, jquery: true, toastr: true } }, log);
+  if (opts?.useToastrLogger) {
+    await ensureToastr({ ...opts, autoLoadDeps: { ...opts.autoLoadDeps, jquery: true, toastr: true } }, log, BADGE, LOG);
   } else {
     // altrimenti rispetta i flag autoLoadDeps
-    await ensureJQuery(opts, log);
-    await ensureToastr(opts, log); // se già presente non fa nulla
+    await ensureJQuery(opts, log, BADGE, LOG);
+    await ensureToastr(opts, log, BADGE, LOG); // se già presente non fa nulla
   }
 
   // Inputmask: sempre secondo flag, ed è indipendente dal **logger**
-  await ensureInputmask(opts, log);
+  await ensureInputmask(opts, log, BADGE, LOG);
 }
 
 /* ============================================================
@@ -760,10 +772,6 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
   // === toggle globale per il badge logger
   (window as any).CC_EPV_DEBUG = !!debug;
 
-  // alias locali (no-ops se debug off)
-  const BADGE: (mod: string, msg: string, color?: string) => void = (window as any).CC_BADGE || function () {};
-  const LOG: (...a: any[]) => void = (window as any).CC_LOG || function () {};
-
   // ----- RIFERIMENTI UI -----
   let lang: Lang = pickLang(i18n); // lingua
 
@@ -954,10 +962,15 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
   // ---------- LOGGER (ora abbiamo l'id)
   let DBG = !!debug;
   const logPrefix = input?.id ? `[EPL:${input.id}]` : "[EPL]";
+
+  // ✅ badge+log con prefix sempre incluso (riusa globali se presenti)
+  const { BADGE, LOG } = ensureBadgeLogger(logPrefix, DBG);
+
+  // logger base (console / esterno)
   let log: Logger = makeBaseLogger(logPrefix, DBG, logger);
 
-  // ---------- DEPS (fire & forget, con eventuale swap su toastr)
-  void ensureDeps(opts, log).then(() => {
+  // ---------- DEPS (fire & forget, ora con BADGE/LOG in chiaro)
+  void ensureDeps(opts, log, BADGE, LOG).then(() => {
     if (useToastrLogger === true && getToastr() && !logger) {
       log = makeToastrLogger(logPrefix, DBG);
       //log.info?.("Toastr logger attached");
