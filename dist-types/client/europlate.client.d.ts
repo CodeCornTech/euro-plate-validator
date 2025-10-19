@@ -18,6 +18,17 @@ export type EuroPlateUI = {
     dropdown?: HTMLElement;
     button?: HTMLElement;
     status?: HTMLElement;
+    /** Nuove opzioni di rendering status */
+    /**
+     * Dove mostrare lo status:
+     * - "block"  → usa <div class="status"> sotto l’input (default, retro-compat)
+     * - "inline" → overlay dentro l’input, non altera l’altezza
+     * - "off"    → non mostra nessuno status testuale
+     */
+    statusMode?: "block" | "inline" | "off";
+    statusIcon?: "none" | "icon" | "pill";
+    showStatusText?: boolean;
+    iconPosition?: "right" | "left";
 };
 /** Opzioni di configurazione per `createEuroPlate` (client-side SDK). */
 export type EuroPlateOptions = {

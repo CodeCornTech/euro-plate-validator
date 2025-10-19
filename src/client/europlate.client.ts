@@ -53,6 +53,18 @@ export type EuroPlateUI = {
   dropdown?: HTMLElement;
   button?: HTMLElement;
   status?: HTMLElement;
+  /** Nuove opzioni di rendering status */
+
+  /**
+   * Dove mostrare lo status:
+   * - "block"  → usa <div class="status"> sotto l’input (default, retro-compat)
+   * - "inline" → overlay dentro l’input, non altera l’altezza
+   * - "off"    → non mostra nessuno status testuale
+   */
+  statusMode?: "block" | "inline" | "off"; // default: "block"
+  statusIcon?: "none" | "icon" | "pill"; // default: "none"
+  showStatusText?: boolean; // default: block→true, inline→false
+  iconPosition?: "right" | "left"; // default: "right"
 };
 /** Opzioni di configurazione per `createEuroPlate` (client-side SDK). */
 export type EuroPlateOptions = {
@@ -438,8 +450,7 @@ const getToastr = (): Toastr | undefined => window.toastr;
 const hasToastr = (): boolean => !!getToastr();
 
 /** @internal * Restituisce Inputmask UMD da deps o window.Inputmask (callable/new). */
-const getIM = (d?: Deps): IMGlobal | undefined =>
-  (d?.inputmask as unknown as IMGlobal) ?? ((window as any).Inputmask as IMGlobal | undefined);
+const getIM = (d?: Deps): IMGlobal | undefined => (d?.inputmask as unknown as IMGlobal) ?? ((window as any).Inputmask as IMGlobal | undefined);
 
 /** @internal * True se Inputmask è disponibile (deps o globale). */
 const hasIM = (d?: Deps): boolean => !!getIM(d);
@@ -515,10 +526,7 @@ async function ensureToastr(opts: EuroPlateOptions, log: Logger) {
   const js = opts.cdn?.toastrJs ?? cdnURLs.base + cdnURLs.toastr.v + cdnURLs.toastr.JS;
 
   try {
-    await Promise.all([
-      loadCssOnce(css, { media: "all" }).then(() => log.debug?.("toastr CSS loaded")),
-      loadScriptOnce(js, { module: false }).then(() => log.debug?.("toastr loaded")),
-    ]);
+    await Promise.all([loadCssOnce(css, { media: "all" }).then(() => log.debug?.("toastr CSS loaded")), loadScriptOnce(js, { module: false }).then(() => log.debug?.("toastr loaded"))]);
   } catch {
     log.warn?.("Failed to load toastr from CDN");
   }
@@ -534,10 +542,7 @@ async function ensureToastr(opts: EuroPlateOptions, log: Logger) {
 async function ensureDeps(opts: EuroPlateOptions, log: Logger) {
   // Se l’utente ha chiesto esplicitamente il logger toastr, *forziamo* il tentativo di caricare jQuery+toastr
   if (opts.useToastrLogger) {
-    await ensureToastr(
-      { ...opts, autoLoadDeps: { ...opts.autoLoadDeps, jquery: true, toastr: true } },
-      log
-    );
+    await ensureToastr({ ...opts, autoLoadDeps: { ...opts.autoLoadDeps, jquery: true, toastr: true } }, log);
   } else {
     // altrimenti rispetta i flag autoLoadDeps
     await ensureJQuery(opts, log);
@@ -696,10 +701,7 @@ function randSuffix(n = 6) {
 /** @internal */
 function deriveDefaultIds(root?: HTMLElement | null, wrapperOpt?: string | HTMLElement | false) {
   // prova a usare l'id del wrapper se c'è
-  const wId =
-    (typeof wrapperOpt === "string" && wrapperOpt.startsWith("#") ? wrapperOpt.slice(1) : null) ||
-    (root && root.id) ||
-    "";
+  const wId = (typeof wrapperOpt === "string" && wrapperOpt.startsWith("#") ? wrapperOpt.slice(1) : null) || (root && root.id) || "";
 
   const base = wId || `epv-${randSuffix()}`;
   const inputId = `${base}-plate`;
@@ -707,6 +709,16 @@ function deriveDefaultIds(root?: HTMLElement | null, wrapperOpt?: string | HTMLE
   return { inputId, inputName };
 }
 
+// helper interno
+function resolveStatusCfg(ui?: EuroPlateUI) {
+  const mode = ui?.statusMode ?? "block";
+  return {
+    statusMode: mode,
+    statusIcon: ui?.statusIcon ?? "none",
+    showStatusText: ui?.showStatusText ?? (mode === "inline" ? false : true),
+    iconPosition: ui?.iconPosition ?? "right",
+  } as Required<Pick<EuroPlateUI, "statusMode" | "statusIcon" | "showStatusText" | "iconPosition">>;
+}
 /* ============================================================
  * ENTRYPOINT PUBBLICO
  * ============================================================ */
@@ -731,8 +743,7 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
     mode = "AUTO",
     vehicleType = "any",
     placeholders = { auto: "AA 999 AA / AA-999-AA / 9999 AAA" },
-    normalize = (c: string) =>
-      String(c || "").toUpperCase() === "GB" ? "UK" : String(c || "").toUpperCase(),
+    normalize = (c: string) => (String(c || "").toUpperCase() === "GB" ? "UK" : String(c || "").toUpperCase()),
     formatters = {
       FR: (s: string) => s.toUpperCase().replace(/\s+/g, "-"),
       IT: (s: string) => s.toUpperCase().replace(/\s+/g, " "),
@@ -745,6 +756,13 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
     debug = false,
     useToastrLogger = false,
   } = opts || ({} as EuroPlateOptions);
+
+  // === toggle globale per il badge logger
+  (window as any).CC_EPV_DEBUG = !!debug;
+
+  // alias locali (no-ops se debug off)
+  const BADGE: (mod: string, msg: string, color?: string) => void = (window as any).CC_BADGE || function () {};
+  const LOG: (...a: any[]) => void = (window as any).CC_LOG || function () {};
 
   // ----- RIFERIMENTI UI -----
   let lang: Lang = pickLang(i18n); // lingua
@@ -760,11 +778,13 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
   let statusEl: HTMLElement | undefined = ui.status ?? undefined;
   // NEW: wrapper element (se presente)
   let wrapperEl: HTMLElement | null = null;
+  // ✅ risolvi configurazione status UNA SOLA VOLTA
+  const statusCfg = resolveStatusCfg(ui);
+  const { statusMode, statusIcon, showStatusText, iconPosition } = statusCfg || {};
 
   // ----- AUTO-BUILD DOM SE wrapper È TRUTHY -----
   if (wrapper) {
-    const root: HTMLElement | null =
-      typeof wrapper === "string" ? document.querySelector(wrapper) : wrapper;
+    const root: HTMLElement | null = typeof wrapper === "string" ? document.querySelector(wrapper) : wrapper;
 
     if (!root) throw new Error(`Wrapper non trovato: ${String(wrapper)}`);
 
@@ -775,19 +795,24 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
 
     root.classList.add("plate-epv-wrapper");
     root.innerHTML = `
-    <div class="plate-epv">
-      <button class="flag-btn" type="button" aria-haspopup="listbox" aria-expanded="false">
-        <div class="epv__flag-box"><div class="epv__flag epv__auto-eu"></div></div>
-        <span class="flag-label">${t(lang, "auto")}</span>
-        <svg width="14" height="14" viewBox="0 0 20 20" fill="none" aria-hidden="true" style="margin-left:4px">
-          <path d="M6 8l4 4 4-4" stroke="#6b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
-      </button>
-      <input class="plate-input" type="${input_type}" placeholder="${t(lang, "placeholderAuto")}" autocomplete="off" />
-      <div class="dropdown" role="listbox" aria-label="Select country"></div>
-    </div>
-    <div class="status"></div>
-  `;
+      <div class="plate-epv">
+        <button class="flag-btn" type="button" aria-haspopup="listbox" aria-expanded="false">
+          <div class="epv__flag-box"><div class="epv__flag epv__auto-eu"></div></div>
+          <span class="flag-label">${t(lang, "auto")}</span>
+          <svg width="14" height="14" viewBox="0 0 20 20" fill="none" aria-hidden="true" style="margin-left:4px">
+            <path d="M6 8l4 4 4-4" stroke="#6b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </button>
+        <div class="epv__input-wrap">
+          <input class="plate-input" type="${input_type}" placeholder="${t(lang, "placeholderAuto")}" autocomplete="off" />
+          <!-- inline status host (invisibile se mode != inline) -->
+          <span class="status-inline-host" aria-live="polite"></span>
+        </div>
+        <div class="dropdown" role="listbox" aria-label="Select country"></div>
+      </div>
+      <!-- status block (retro-compat) -->
+      <div class="status" aria-live="polite"></div>
+   `;
 
     // bind
     const plateInput = root.querySelector(".plate-input") as HTMLInputElement;
@@ -803,7 +828,47 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
     flagLabel = root.querySelector(".flag-label") as HTMLElement;
     dropdown = root.querySelector(".dropdown") as HTMLElement;
     input = plateInput;
-    statusEl = root.querySelector(".status") as HTMLElement;
+    //   const inputWrap = root.querySelector(".epv__input-wrap") as HTMLElement;
+
+    // const inlineHost = (root as HTMLElement).querySelector(".status-inline-host") as HTMLElement;
+    // const blockHost = (root as HTMLElement).querySelector(".status") as HTMLElement;
+    const inlineHost = root.querySelector(".status-inline-host") as HTMLElement;
+    const blockHost = root.querySelector(".status") as HTMLElement;
+    // status element (inline/block/off)
+
+    // scegli contenitore e applica le classi/dataset una sola volta
+    if (statusMode === "inline") {
+      statusEl = inlineHost;
+      blockHost.style.display = "none";
+      inlineHost.style.display = "";
+
+      inlineHost.className = "status-inline-host"; // reset
+      inlineHost.dataset.pos = iconPosition; // "right" | "left"
+      inlineHost.dataset.icon = statusIcon; // "none" | "icon" | "pill"
+      inlineHost.dataset.text = String(!!showStatusText);
+
+      // assicurati struttura stabile (icon + text)
+      let iconEl = inlineHost.querySelector(".s-icon") as HTMLElement | null;
+      let textEl = inlineHost.querySelector(".s-text") as HTMLElement | null;
+      if (!iconEl) {
+        iconEl = document.createElement("span");
+        iconEl.className = "s-icon";
+        inlineHost.appendChild(iconEl);
+      }
+      if (!textEl) {
+        textEl = document.createElement("span");
+        textEl.className = "s-text";
+        inlineHost.appendChild(textEl);
+      }
+    } else if (statusMode === "block") {
+      statusEl = blockHost;
+      inlineHost.style.display = "none";
+    } else {
+      // off
+      statusEl = undefined;
+      inlineHost.style.display = "none";
+      blockHost.style.display = "none";
+    }
 
     // aggiorna anche opts per retro-compat (se altrove li leggi da opts)
     (opts as any).ui = { button, flagIcon, flagLabel, dropdown, status: statusEl };
@@ -833,12 +898,42 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
         input.name = opts.inputName;
       }
     }
+    wrapperEl = (input.closest(".plate-epv-wrapper") as HTMLElement | null) ?? (input.parentElement as HTMLElement | null) ?? null;
 
-    // wrapper: preferisci .plate-epv-wrapper, altrimenti parent
-    wrapperEl =
-      (input.closest(".plate-epv-wrapper") as HTMLElement | null) ??
-      (input.parentElement as HTMLElement | null) ??
-      null;
+    if (statusMode === "inline") {
+      // assicurati un container posizionato
+      const host = (wrapperEl?.querySelector(".epv__input-wrap") as HTMLElement | null) ?? (input.parentElement as HTMLElement | null) ?? input;
+
+      if (getComputedStyle(host).position === "static") (host as HTMLElement).style.position = "relative";
+
+      // crea un inline-host compatibile con quello del wrapper
+      const inlineHost = document.createElement("span");
+      inlineHost.className = "status-inline-host";
+      inlineHost.dataset.pos = iconPosition;
+      inlineHost.dataset.icon = statusIcon;
+      inlineHost.dataset.text = String(!!showStatusText);
+
+      const iconEl = document.createElement("span");
+      iconEl.className = "s-icon";
+      const textEl = document.createElement("span");
+      textEl.className = "s-text";
+      inlineHost.appendChild(iconEl);
+      inlineHost.appendChild(textEl);
+
+      host.appendChild(inlineHost);
+      statusEl = inlineHost;
+    } else if (statusMode === "block") {
+      statusEl =
+        (wrapperEl && (wrapperEl.querySelector(".status") as HTMLElement | null)) ??
+        (() => {
+          const d = document.createElement("div");
+          d.className = "status";
+          input.insertAdjacentElement("afterend", d);
+          return d;
+        })();
+    } else {
+      statusEl = undefined;
+    }
 
     // fallback id/name se mancano
     if (!input.id || !input.name) {
@@ -865,7 +960,8 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
   void ensureDeps(opts, log).then(() => {
     if (useToastrLogger === true && getToastr() && !logger) {
       log = makeToastrLogger(logPrefix, DBG);
-      log.info?.("Toastr logger attached");
+      //log.info?.("Toastr logger attached");
+      BADGE("EuroPlate", "Toastr logger attached", "info");
     }
     // se IM arriva dopo e non siamo in AUTO, prova ad applicare la mask
     if (hasIMBound() && selected !== "AUTO") {
@@ -894,24 +990,14 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
     return isCountryKey(n) ? (n as CountryKey) : "AUTO";
   })();
 
-  let allowed: CountryKey[] = (
-    allowedCountries && allowedCountries.length ? allowedCountries : [...supportedCountries]
-  )
-    .map((c) => normalize(String(c || "")))
-    .filter(isCountryKey) as CountryKey[];
+  let allowed: CountryKey[] = (allowedCountries && allowedCountries.length ? allowedCountries : [...supportedCountries]).map((c) => normalize(String(c || ""))).filter(isCountryKey) as CountryKey[];
 
   let destroyed = false;
 
-  const fmtFor = (cc: string, s: string) =>
-    formatters[cc] ? formatters[cc](s) : String(s).toUpperCase();
+  const fmtFor = (cc: string, s: string) => (formatters[cc] ? formatters[cc](s) : String(s).toUpperCase());
 
   // setFlag
-  const setFlag = (
-    code: "AUTO" | CountryKey | null,
-    flagIcon: HTMLElement | undefined,
-    flagLabel: HTMLElement | undefined,
-    lang: Lang
-  ) => {
+  const setFlag = (code: "AUTO" | CountryKey | null, flagIcon: HTMLElement | undefined, flagLabel: HTMLElement | undefined, lang: Lang) => {
     if (!flagIcon || !flagLabel) return; // UI opzionale
     if (!code || code === "AUTO") {
       flagIcon.className = "epv__flag epv__auto-eu";
@@ -1024,20 +1110,74 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
     lang: Lang,
     wrap?: HTMLElement | null // NEW
   ) {
-    // input
+    const BADGE = (window as any).CC_BADGE || function () {};
+    const CC_COLORS = (window as any).CC_COLORS || {};
+
+    // input: aria + classi
     input.classList.toggle("valid", !!ok);
     input.classList.toggle("invalid", !ok);
     input.setAttribute("aria-invalid", ok ? "false" : "true");
-    input.setCustomValidity(ok ? "" : msg || "Invalid plate");
+    input.setCustomValidity(ok ? "" : msg || "Invalid");
 
     // wrapper (se presente)
     if (wrap) {
       wrap.classList.toggle("valid", !!ok);
       wrap.classList.toggle("invalid", !ok);
     }
-    // status
-    if (!status) return;
 
+    // se non hai status o modalità off
+    if (!status || statusMode === "off") return;
+
+    // dataset per CSS
+    status.dataset.state = ok ? "ok" : "err";
+
+    // testo breve
+    const shortText = ok && matchCountry ? `${countryName(lang, matchCountry)} (${matchCountry})` : !ok ? t(lang, "invalid") : "";
+
+    // =========================
+    // MODE: INLINE (micro UI)
+    // =========================
+    if (statusMode === "inline") {
+      // host è .status-inline-host
+      status.className = "status-inline-host";
+      status.dataset.pos = iconPosition;
+      status.dataset.icon = statusIcon;
+      status.dataset.text = String(!!showStatusText);
+
+      let iconEl = status.querySelector(".s-icon") as HTMLElement | null;
+      let textEl = status.querySelector(".s-text") as HTMLElement | null;
+      if (!iconEl) {
+        iconEl = document.createElement("span");
+        iconEl.className = "s-icon";
+        status.appendChild(iconEl);
+      }
+      if (!textEl) {
+        textEl = document.createElement("span");
+        textEl.className = "s-text";
+        status.appendChild(textEl);
+      }
+
+      // icona
+      iconEl.className = "s-icon"; // reset
+      if (statusIcon === "icon") {
+        iconEl.textContent = ok ? "✓" : "!";
+      } else if (statusIcon === "pill") {
+        iconEl.classList.add("pill", ok ? "ok" : "err");
+        iconEl.textContent = ok ? "OK" : "ERR";
+      } else {
+        iconEl.textContent = "";
+      }
+
+      // testo (se richiesto)
+      textEl.textContent = showStatusText ? shortText : "";
+      textEl.style.display = showStatusText ? "" : "none";
+
+      return;
+    }
+    // =========================
+    // MODE: BLOCK (retro-compat)
+    // =========================
+    // Nota: manteniamo le tue classi storiche "status ok/err" e il testo completo con emoji
     if (ok && matchCountry) {
       status.className = "status ok";
       status.textContent = `✅ ${t(lang, "valid")} — ${countryName(lang, matchCountry)} (${matchCountry})`;
@@ -1048,6 +1188,8 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
       status.className = "status";
       status.textContent = "";
     }
+
+    BADGE("EuroPlate", `status block → ${ok ? "OK" : "ERR"}`, ok ? "ok" : "err");
   }
 
   // renderDropdown
@@ -1145,9 +1287,7 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
         // fallback: se non è un CountryKey valido, trattalo come KO sotto
         // KO
         const checkedArr = res.checked ?? [];
-        const msg = checkedArr.length
-          ? `❌ ${t(lang, "invalid")} — ${t(lang, "checked")}: ${checkedArr.join(", ")}`
-          : `❌ ${t(lang, "invalid")}`;
+        const msg = checkedArr.length ? `❌ ${t(lang, "invalid")} — ${t(lang, "checked")}: ${checkedArr.join(", ")}` : `❌ ${t(lang, "invalid")}`;
 
         setValidityUI(false, msg, null, input, statusEl, lang, wrapperEl);
 
@@ -1162,9 +1302,7 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
     } else {
       // KO
       const checkedArr = res.checked ?? [];
-      const msg = checkedArr.length
-        ? `❌ ${t(lang, "invalid")} — ${t(lang, "checked")}: ${checkedArr.join(", ")}`
-        : `❌ ${t(lang, "invalid")}`;
+      const msg = checkedArr.length ? `❌ ${t(lang, "invalid")} — ${t(lang, "checked")}: ${checkedArr.join(", ")}` : `❌ ${t(lang, "invalid")}`;
 
       setValidityUI(false, msg, null, input, statusEl, lang, wrapperEl);
 
@@ -1178,12 +1316,7 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
     }
   }
 
-  function updatePlaceholderForCurrentSelection(
-    selected: "AUTO" | CountryKey,
-    input: HTMLInputElement,
-    EuroMod: any,
-    lang: Lang
-  ) {
+  function updatePlaceholderForCurrentSelection(selected: "AUTO" | CountryKey, input: HTMLInputElement, EuroMod: any, lang: Lang) {
     if (selected === "AUTO") {
       input.placeholder = t(lang, "placeholderAuto");
     } else {
@@ -1243,9 +1376,7 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
     setCountry: (code) => selectCountry(code),
 
     setAllowed(codes) {
-      allowed = Array.from(new Set((codes || []).map((c) => normalize(String(c || ""))))).filter(
-        isCountryKey
-      ) as CountryKey[];
+      allowed = Array.from(new Set((codes || []).map((c) => normalize(String(c || ""))))).filter(isCountryKey) as CountryKey[];
       renderDropdown();
     },
     setVehicleType(t) {

@@ -105,6 +105,33 @@ type EuroPlateOptions = {
   preserveInputAttrs?: boolean; // NEW: se true, NON sovrascrive id/name esistenti
   autoFocusOnInit?: boolean; // NEW: default false (no focus su init)
 
+  // ⚙️ Configurazione UI (nuovo: TUTTO sotto "ui")
+  ui?: {
+    /**
+     * Dove mostrare lo status:
+     * - "block"  → usa <div class="status"> sotto l’input (retro-compat, default)
+     * - "inline" → overlay dentro l’input, non altera l’altezza
+     * - "off"    → non mostra testo/icona di stato
+     */
+    statusMode?: "block" | "inline" | "off"; // default: "block"
+
+    /** Tipo di icona per lo status inline (ignorata in "block" e "off") */
+    statusIcon?: "none" | "icon" | "pill"; // default: "none"
+
+    /** Se mostrare il testo di stato */
+    showStatusText?: boolean; // default: block→true, inline→false
+
+    /** Posizione dell’icona inline */
+    iconPosition?: "right" | "left"; // default: "right"
+
+    // Riferimenti opzionali a nodi già esistenti (se NON usi wrapper)
+    flagIcon?: HTMLElement;
+    flagLabel?: HTMLElement;
+    dropdown?: HTMLElement;
+    button?: HTMLElement;
+    status?: HTMLElement;
+  };
+
   // UX/i18n
   mode?: "AUTO" | string; // paese fisso o AUTO (default)
   i18n?: "AUTO" | "IT" | "EN"; // default AUTO → navigator it/en
@@ -127,6 +154,19 @@ type EuroPlateOptions = {
   debug?: boolean;
 };
 ```
+
+#### Valori e default (UI)
+
+| Chiave                                        | Tipo                           | Valori               | Default                      | Note                                                                                      |
+| --------------------------------------------- | ------------------------------ | -------------------- | ---------------------------- | ----------------------------------------------------------------------------------------- |
+| `ui.statusMode`                               | `"block" \| "inline" \| "off"` | block / inline / off | `"block"`                    | _block_ usa `<div class="status">`, _inline_ overlay nell’input, _off_ niente testo/icona |
+| `ui.statusIcon`                               | `"none" \| "icon" \| "pill"`   | none / icon / pill   | `"none"`                     | usata **solo** in `inline`                                                                |
+| `ui.showStatusText`                           | `boolean`                      | true / false         | `block→true`, `inline→false` | testo breve in inline; completo in block                                                  |
+| `ui.iconPosition`                             | `"right" \| "left"`            | right / left         | `"right"`                    | posizione icona in inline                                                                 |
+| `ui.status`                                   | `HTMLElement` (opz.)           | —                    | auto-creato/derivato         | host esistente per lo status (se non usi `wrapper`)                                       |
+| `ui.button`/`dropdown`/`flagIcon`/`flagLabel` | `HTMLElement` (opz.)           | —                    | auto-creati se `wrapper`     | per re-use di DOM esterno                                                                 |
+
+---
 
 ### Metodi istanza
 
@@ -152,10 +192,7 @@ type EuroPlateInstance = {
 ### A) Passi tu `Inputmask` (UMD → `window.Inputmask`)
 
 ```html
-<link
-  rel="stylesheet"
-  href="https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.12/dist/assets/css/styles.css"
-/>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.12/dist/assets/css/styles.css" />
 <script src="https://cdn.jsdelivr.net/npm/inputmask@5.0.9/dist/inputmask.min.js"></script>
 
 <script type="module">
@@ -224,6 +261,70 @@ createEuroPlate(EuroMod, {
     autoFocusOnInit: false,
   });
 </script>
+```
+
+## F) Esempi per status
+
+### A) Inline, **solo icona** a destra (senza testo)
+
+```ts
+createEuroPlate(EuroMod, {
+  wrapper: "#plate-wrap",
+  ui: {
+    statusMode: "inline",
+    statusIcon: "icon",
+    showStatusText: false,
+    iconPosition: "right",
+  },
+});
+```
+
+### B) Inline, **pill + testo** a sinistra
+
+```ts
+createEuroPlate(EuroMod, {
+  input: document.getElementById("my-plate") as HTMLInputElement,
+  ui: {
+    statusMode: "inline",
+    statusIcon: "pill",
+    showStatusText: true,
+    iconPosition: "left",
+  },
+});
+```
+
+### C) Nessuna icona, **status block** classico
+
+```ts
+createEuroPlate(EuroMod, {
+  wrapper: "#plate-wrap",
+  ui: {
+    statusMode: "block",
+    statusIcon: "none",
+    // showStatusText default true in "block"
+  },
+});
+```
+
+### D) **Nessuno** status (silenzioso)
+
+```ts
+createEuroPlate(EuroMod, {
+  wrapper: "#plate-wrap",
+  ui: { statusMode: "off" },
+});
+```
+
+### E) Re-attach su DOM esistente (niente `wrapper`)
+
+```ts
+createEuroPlate(EuroMod, {
+  input: document.getElementById("plate") as HTMLInputElement,
+  ui: {
+    status: document.getElementById("plate-status") as HTMLElement, // host esistente
+    statusMode: "block",
+  },
+});
 ```
 
 ---
