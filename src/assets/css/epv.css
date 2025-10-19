@@ -200,7 +200,7 @@
   --epv-gap: 0.375rem; /* spazio icona↔testo          */
   --epv-icon: 14px; /* lato dell’icona semplice    */
   --epv-pill: 18px; /* diametro della pill         */
-  --epv-textch: 12ch; /* spazio tipico per testo     */
+  --epv-textch: 12.5ch; /* spazio tipico per testo     */
 }
 
 /* Host inline */
@@ -281,7 +281,7 @@
 }
 /* to check */
 .epv__input-wrap {
-  min-width: 70%;
+  min-width: 60%;
   display: flex;
   flex: 1;
 }
