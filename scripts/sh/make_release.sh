@@ -8,7 +8,7 @@ set -Eeuo pipefail
 # 🔧 CONFIG
 #######################################
 SCRIPT_NAME="$(basename "$0")"
-SCRIPT_VERSION="2.6.1"
+SCRIPT_VERSION="2.6.2"
 SCRIPT_AUTHOR="Federico Girolami"
 SCRIPT_TEAM="Pytorchia™ Developers"
 SCRIPT_LICENSE="MIT License"
@@ -98,18 +98,20 @@ die() {
     exit 1
 }
 
+# ESEGUE i comandi preservando gli argomenti (no eval), stampa solo se DEBUG
 run() {
-    # esegue i comandi preservando gli argomenti (niente eval)
     local -a cmd=("$@")
     if [[ "$DRY_RUN" == true ]]; then
         warn "DRY-RUN → ${cmd[*]}"
-    else
-        #dbg "exec → ${cmd[*]}"
-        "${cmd[@]}"
+        return 0
     fi
+    [[ "$DEBUG" == true ]] && printf '%s[dbg]%s %s\n' "$MAGENTA" "$RESET" "exec → ${cmd[*]}"
+    "${cmd[@]}"
 }
 
-trap 'err "Errore a riga $LINENO . Uscita ." ' ERR
+# Trap più utile (mostra comando e exit code)
+set -o errtrace
+trap 'err "Cmd: ${BASH_COMMAND} → exit $? (line ${BASH_LINENO[0]})" ' ERR
 
 #######################################
 # 🧱 Banner
@@ -514,13 +516,15 @@ auto_chain_if_needed() {
     # Tests
     if [[ "$RUN_TESTS" == true ]]; then
         info "Eseguo test : npm run $TEST_SCRIPT"
-        run bash -lc "cd \"$REPO_ROOT_DIR\" && npm run \"$TEST_SCRIPT\""
+        run bash -lc "cd \"$REPO_ROOT_DIR\" && npm run \"$TEST_SCRIPT\"" \
+            || die "Test falliti (script: $TEST_SCRIPT)"
     fi
 
     # Build
     if [[ "$RUN_BUILD" == true ]]; then
         info "Eseguo build : npm run $BUILD_SCRIPT"
-        run bash -lc "cd \"$REPO_ROOT_DIR\" && npm run \"$BUILD_SCRIPT\""
+        run bash -lc "cd \"$REPO_ROOT_DIR\" && npm run \"$BUILD_SCRIPT\"" \
+            || die "Build fallita (script: $BUILD_SCRIPT)"
     fi
 
     # Bump
@@ -588,14 +592,14 @@ do_release() {
     # Tag GH: se npm version ha già creato il tag, lo vedremo esistente
     ensure_tag
 
-    # Assets (compat bash 3.2; niente mapfile, niente echo; safe con spazi)
+    # Assets (compat bash 3.2; niente mapfile/echo; safe con spazi; no trap su zero match)
     local -a assets_arg=()
     if [[ -n "$ASSETS_GLOB" ]]; then
-        # compgen -G espande il glob in maniera robusta (0..N righe, una per match)
         local -a matches=()
+        # Se non ci sono match, forziamo exit 0 nel subshell per non far scattare set -e
         while IFS= read -r line; do
             matches+=("$line")
-        done < <(compgen -G -- "$ASSETS_GLOB")
+        done < <(compgen -G -- "$ASSETS_GLOB" || true)
 
         if ((${#matches[@]})); then
             for f in "${matches[@]}"; do
