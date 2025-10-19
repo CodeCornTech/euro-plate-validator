@@ -1281,44 +1281,40 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
   }, timings.debounce);
 
   // setValidityUI
-  function setValidityUI(
-    ok: boolean,
-    msg: string,
-    matchCountry: CountryKey | null,
-    input: HTMLInputElement,
-    status: HTMLElement | undefined,
-    lang: Lang,
-    wrap?: HTMLElement | null // NEW
-  ) {
-    const BADGE = (window as any).CC_BADGE || function () {};
-    const CC_COLORS = (window as any).CC_COLORS || {};
-
-    // input: aria + classi
-    input.classList.toggle("valid", !!ok);
-    input.classList.toggle("invalid", !ok);
-    input.setAttribute("aria-invalid", ok ? "false" : "true");
-    input.setCustomValidity(ok ? "" : msg || "Invalid");
-
-    // wrapper (se presente)
-    if (wrap) {
-      wrap.classList.toggle("valid", !!ok);
-      wrap.classList.toggle("invalid", !ok);
+  function setValidityUI(ok: boolean | null, msg: string, matchCountry: CountryKey | null, input: HTMLInputElement, status: HTMLElement | undefined, lang: Lang, wrap?: HTMLElement | null) {
+    // INPUT: classi + aria
+    if (ok === true) {
+      input.classList.add("valid");
+      input.classList.remove("invalid");
+      input.setAttribute("aria-invalid", "false");
+      input.setCustomValidity("");
+      wrap?.classList.add("valid");
+      wrap?.classList.remove("invalid");
+    } else if (ok === false) {
+      input.classList.add("invalid");
+      input.classList.remove("valid");
+      input.setAttribute("aria-invalid", "true");
+      input.setCustomValidity(msg || "Invalid");
+      wrap?.classList.add("invalid");
+      wrap?.classList.remove("valid");
+    } else {
+      // idle
+      input.classList.remove("valid", "invalid");
+      input.removeAttribute("aria-invalid");
+      input.setCustomValidity("");
+      wrap?.classList.remove("valid", "invalid");
     }
 
-    // se non hai status o modalità off
     if (!status || statusMode === "off") return;
 
-    // dataset per CSS
-    status.dataset.state = ok ? "ok" : "err";
+    // dataset per CSS (→ usato anche dai selettori :has)
+    if (ok === true) status.dataset.state = "ok";
+    else if (ok === false) status.dataset.state = "err";
+    else delete status.dataset.state; // idle: nessuno stato
 
-    // testo breve
-    const shortText = ok && matchCountry ? `${countryName(lang, matchCountry)} (${matchCountry})` : !ok ? t(lang, "invalid") : "";
+    const shortText = ok === true && matchCountry ? `${countryName(lang, matchCountry)} (${matchCountry})` : ok === false ? t(lang, "invalid") : ""; // idle → niente testo
 
-    // =========================
-    // MODE: INLINE (micro UI)
-    // =========================
     if (statusMode === "inline") {
-      // host è .status-inline-host
       status.className = "status-inline-host";
       status.dataset.pos = iconPosition;
       status.dataset.icon = statusIcon;
@@ -1338,38 +1334,42 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
       }
 
       // icona
-      iconEl.className = "s-icon"; // reset
-      if (statusIcon === "icon") {
-        iconEl.textContent = ok ? "✓" : "!";
-      } else if (statusIcon === "pill") {
-        iconEl.classList.add("pill", ok ? "ok" : "err");
-        //iconEl.textContent = ok ? "OK" : "ERR";
-        iconEl.textContent = ok ? "✓" : "!";
+      iconEl.className = "s-icon";
+      if (ok === true) {
+        if (statusIcon === "icon") iconEl.textContent = "✓";
+        else if (statusIcon === "pill") {
+          iconEl.classList.add("pill", "ok");
+          iconEl.textContent = "✓";
+        } else iconEl.textContent = "";
+      } else if (ok === false) {
+        if (statusIcon === "icon") iconEl.textContent = "!";
+        else if (statusIcon === "pill") {
+          iconEl.classList.add("pill", "err");
+          iconEl.textContent = "!";
+        } else iconEl.textContent = "";
       } else {
+        // idle
         iconEl.textContent = "";
+        iconEl.classList.remove("pill", "ok", "err");
       }
 
-      // testo (se richiesto)
-      textEl.textContent = showStatusText ? shortText : "";
-      textEl.style.display = showStatusText ? "" : "none";
-
+      // testo
+      textEl.textContent = ok == null ? "" : showStatusText ? shortText : "";
+      textEl.style.display = showStatusText && ok != null ? "" : "none";
       return;
     }
-    // =========================
-    // MODE: BLOCK (retro-compat)
-    // =========================
-    // Nota: manteniamo le tue classi storiche "status ok/err" e il testo completo con emoji
-    if (ok && matchCountry) {
+
+    // BLOCK (retro)
+    if (ok === true && matchCountry) {
       status.className = "status ok";
       status.textContent = `✅ ${t(lang, "valid")} — ${countryName(lang, matchCountry)} (${matchCountry})`;
-    } else if (!ok) {
+    } else if (ok === false) {
       status.className = "status err";
       status.textContent = msg || `❌ ${t(lang, "invalid")}`;
     } else {
       status.className = "status";
       status.textContent = "";
     }
-
     BADGE("EuroPlate", `status block → ${ok ? "OK" : "ERR"}`, ok ? "ok" : "err");
   }
 
@@ -1420,11 +1420,11 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
     let raw = input.value;
 
     if (!raw.trim()) {
-      // setValidityUI(false, "", null, input, statusEl, lang, wrapperEl);
-      setValidityUI(true as any, "", null, input, statusEl, lang, wrapperEl);
-      input.classList.remove("valid", "invalid");
-      wrapperEl?.classList.remove("valid", "invalid");
-
+      // IN 1-0-12
+      //setValidityUI(true as any, "", null, input, statusEl, lang, wrapperEl);
+      //input.classList.remove("valid", "invalid");
+      //wrapperEl?.classList.remove("valid", "invalid");
+      setValidityUI(null, "", null, input, statusEl, lang, wrapperEl); // 👈 idle
       if (selected === "AUTO") {
         hardClearMaskDebounced(input);
         input.placeholder = placeholders.auto || "";
@@ -1444,6 +1444,8 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
       const v2 = raw.toUpperCase().replace(/\s+/g, " ").trimStart();
       if (v2 !== raw) input.value = raw = v2;
     }
+    // non validiamo finche nn c e un risultato minimo
+    if(raw.trim()?.length <= 2) return { ok: false, value: raw };
 
     const countries = selected === "AUTO" ? allowed : [selected];
     const res = validatePlate(raw, countries, { vehicleType });

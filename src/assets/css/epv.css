@@ -182,3 +182,177 @@
     justify-content: center;
   }
 }
+
+
+/* ============================================================
+   VALIDATION UI _ @since 1.0.13 variant-4
+   ============================================================ */
+
+/* ---- Base ---- */
+.plate-epv .epv__input-wrap {
+  position: relative;
+}
+
+/* Variabili utili (tweak a piacere) */
+.plate-epv {
+  --epv-padL: 0.625rem; /* padding base lato sinistro  */
+  --epv-padR: 0.625rem; /* padding base lato destro    */
+  --epv-gap: 0.375rem; /* spazio icona↔testo          */
+  --epv-icon: 14px; /* lato dell’icona semplice    */
+  --epv-pill: 18px; /* diametro della pill         */
+  --epv-textch: 12ch; /* spazio tipico per testo     */
+}
+
+/* Host inline */
+.status-inline-host {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  right: var(--epv-padR);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--epv-gap);
+  font-size: 0.75rem;
+  line-height: 1;
+  color: #64748b;
+  pointer-events: none;
+  white-space: nowrap;
+  max-width: 60%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  z-index: 1;
+}
+.status-inline-host[data-pos="left"] {
+  left: var(--epv-padL);
+  right: auto;
+}
+
+/* Testo on/off */
+.status-inline-host[data-text="false"] .s-text {
+  display: none;
+}
+
+/* Slot icona */
+.status-inline-host .s-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Icon mode (✓/!) */
+.status-inline-host[data-icon="icon"] .s-icon {
+  width: var(--epv-icon);
+  height: var(--epv-icon);
+  flex: 0 0 var(--epv-icon);
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* Pill mode (tondo riempito con OK/ERR) */
+
+.status-inline-host[data-icon="pill"] .s-icon {
+  width: var(--epv-pill);
+  height: var(--epv-pill);
+  flex: 0 0 var(--epv-pill);
+  border-radius: 999px;
+
+  font-size: 10px;
+  font-weight: 700;
+  line-height: var(--epv-pill);
+}
+.status-inline-host[data-icon="none"] .s-icon {
+  display: none;
+}
+/* Stato colore */
+.status-inline-host[data-state="ok"] {
+  color: #16a34a;
+}
+.status-inline-host[data-state="err"] {
+  color: #dc2626;
+}
+.status-inline-host[data-state="ok"][data-icon="pill"] .ok {
+  background-color: #16a34a;
+  color: #fff;
+}
+.status-inline-host[data-state="err"][data-icon="pill"] .err {
+  background-color: #dc2626;
+  color: #fff;
+  font-weight: bold;
+}
+/* to check */
+.epv__input-wrap {
+  min-width: 70%;
+  display: flex;
+  flex: 1;
+}
+/* to check */
+.plate-input {
+  width: inherit;
+}
+/* ---------------------------
+      RISERVA SPAZIO NELL'INPUT
+      (evita che il testo finisca sotto l’overlay)
+      Richiede :has() — tutti i browser moderni ok.
+      --------------------------- */
+
+/* ---------- RIGHT side ---------- */
+/* ICON (no text) */
+.epv__input-wrap:has(.status-inline-host[data-state][data-pos="right"][data-icon="icon"][data-text="false"]) .plate-input {
+  padding-right: calc(var(--epv-padR) + var(--epv-icon) + var(--epv-gap));
+}
+/* ICON + text */
+.epv__input-wrap:has(.status-inline-host[data-state][data-pos="right"][data-icon="icon"][data-text="true"]) .plate-input {
+  padding-right: calc(var(--epv-padR) + var(--epv-icon) + var(--epv-gap) + var(--epv-textch));
+}
+
+/* PILL (no text) */
+.epv__input-wrap:has(.status-inline-host[data-state][data-pos="right"][data-icon="pill"][data-text="false"]) .plate-input {
+  padding-right: calc(var(--epv-padR) + var(--epv-pill) + var(--epv-gap));
+}
+/* PILL + text */
+.epv__input-wrap:has(.status-inline-host[data-state][data-pos="right"][data-icon="pill"][data-text="true"]) .plate-input {
+  padding-right: calc(var(--epv-padR) + var(--epv-pill) + var(--epv-gap) + var(--epv-textch));
+}
+
+/* NONE + text (solo testo) */
+.epv__input-wrap:has(.status-inline-host[data-state][data-pos="right"][data-icon="none"][data-text="true"]) .plate-input {
+  padding-right: calc(var(--epv-padR) + var(--epv-textch));
+}
+/* NONE + no text → nessun padding extra (nessuna regola) */
+
+/* ---------- LEFT side (mirror) ---------- */
+/* ICON (no text) */
+.epv__input-wrap:has(.status-inline-host[data-state][data-pos="left"][data-icon="icon"][data-text="false"]) .plate-input {
+  padding-left: calc(var(--epv-padL) + var(--epv-icon) + var(--epv-gap));
+}
+/* ICON + text */
+.epv__input-wrap:has(.status-inline-host[data-state][data-pos="left"][data-icon="icon"][data-text="true"]) .plate-input {
+  padding-left: calc(var(--epv-padL) + var(--epv-icon) + var(--epv-gap) + var(--epv-textch));
+}
+
+/* PILL (no text) */
+.epv__input-wrap:has(.status-inline-host[data-state][data-pos="left"][data-icon="pill"][data-text="false"]) .plate-input {
+  padding-left: calc(var(--epv-padL) + var(--epv-pill) + var(--epv-gap));
+}
+/* PILL + text */
+.epv__input-wrap:has(.status-inline-host[data-state][data-pos="left"][data-icon="pill"][data-text="true"]) .plate-input {
+  padding-left: calc(var(--epv-padL) + var(--epv-pill) + var(--epv-gap) + var(--epv-textch));
+}
+
+/* NONE + text (solo testo) */
+.epv__input-wrap:has(.status-inline-host[data-state][data-pos="left"][data-icon="none"][data-text="true"]) .plate-input {
+  padding-left: calc(var(--epv-padL) + var(--epv-textch));
+}
+/* NONE + no text → nessun padding extra (nessuna regola) */
+
+/* Retro-compat block */
+.status {
+  margin-top: 0.375rem;
+  font-size: 0.875rem;
+}
+.status.ok {
+  color: #16a34a;
+}
+.status.err {
+  color: #dc2626;
+}
