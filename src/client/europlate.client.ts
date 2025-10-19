@@ -459,31 +459,16 @@ const hasIM = (d?: Deps): boolean => !!getIM(d);
 // --- fine getters ---
 
 /**
- * @internal
- * Garantisce che Inputmask sia disponibile secondo i flag `autoLoadDeps`.
- *  - Non blocca l’inizializzazione della UI.
- *  - Prima controlla deps/window, poi carica da CDN se consentito.
+ * ============================================================
+ *  🔧 ensureJQuery / ensureToastr / ensureInputmask
+ *  Sistema di caricamento dipendenze EuroPlate (client SDK)
+ * ------------------------------------------------------------
+ *  • Idempotenti → ogni risorsa caricata una sola volta
+ *  • Concurrency-safe → coalescano chiamate parallele
+ *  • Cleanup controllato → cancellano solo chiavi create localmente
+ *  • Logging coerente via BADGE/LOG
+ * ============================================================
  */
-async function ensureInputmask(opts: EuroPlateOptions, log: Logger, BADGE: BadgeFn = () => {}, LOG: SmartLogFn = () => {}) {
-  // se già presente (deps o global), fine
-  if (hasIM(opts.deps)) {
-    BADGE("Deps", "Inputmask present (deps/global)", "info");
-    return;
-  } // già presente (deps o globale)
-
-  const want = (opts.autoLoadDeps?.inputmask ?? true) !== false;
-  if (!want) {
-    BADGE("Deps", "Inputmask autoload disabled", "warn");
-    return;
-  }
-
-  const url = opts.cdn?.inputmask ?? cdnURLs.base + cdnURLs.inputmask.v + cdnURLs.inputmask.JS;
-  try {
-    await loadScriptOnce(url, { module: false }).then(() => BADGE("Deps", "Inputmask loaded", "info"));
-  } catch {
-    BADGE("Deps", "Failed to load Inputmask from CDN", "err");
-  }
-}
 
 /**
  * @internal
@@ -491,24 +476,41 @@ async function ensureInputmask(opts: EuroPlateOptions, log: Logger, BADGE: Badge
  * Nota: usato come dipendenza di toastr 2.x.
  */
 async function ensureJQuery(opts: EuroPlateOptions, log: Logger, BADGE: BadgeFn = () => {}, LOG: SmartLogFn = () => {}) {
-  // prima di importare jQuery controlla se c’è già (evita conflitti)
+  // --- 1️⃣ controllo immediato
   if (hasJQ()) {
-    BADGE("Deps", "jQuery present", "info");
+    BADGE("EPV[Deps]", "jQuery present", "debug");
     return;
   }
 
+  // --- 2️⃣ flag autoload
   const want = (opts.autoLoadDeps?.jquery ?? true) !== false;
   if (!want) {
-    BADGE("Deps", "jQuery autoload disabled", "warn");
+    BADGE("EPV[Deps]", "jQuery autoload disabled", "warn");
     return;
   }
 
-  const url = opts.cdn?.jquery ?? cdnURLs.base + cdnURLs.jquery.v + cdnURLs.jquery.JS;
+  // --- 3️⃣ costruzione URL e key dedup
+  const js = opts.cdn?.jquery ?? cdnURLs.base + cdnURLs.jquery.v + cdnURLs.jquery.JS;
+  const key = buildKey("js", js);
+
+  // --- 4️⃣ dedup + concurrency-safe
+  let created = false;
+  let p = inFlightScripts.get(key);
+  if (!p) {
+    p = loadScriptOnce(js, { module: false });
+    inFlightScripts.set(key, p);
+    created = true;
+  } else {
+    BADGE("EPV[Deps]", "jQuery loading (in-flight)", "info");
+  }
 
   try {
-    await loadScriptOnce(url, { module: false }).then(() => BADGE("Deps", "jQuery loaded", "info"));
+    await p;
+    BADGE("EPV[Deps]", created ? "jQuery loaded" : "jQuery ready", "debug");
   } catch {
-    BADGE("Deps", "Failed to load jQuery from CDN", "err");
+    BADGE("EPV[Deps]", "Failed to load jQuery from CDN", "err");
+  } finally {
+    if (created) inFlightScripts.delete(key);
   }
 }
 
@@ -518,51 +520,180 @@ async function ensureJQuery(opts: EuroPlateOptions, log: Logger, BADGE: BadgeFn 
  *  Dipende da jQuery: lo assicura prima di caricare toastr.
  */
 async function ensureToastr(opts: EuroPlateOptions, log: Logger, BADGE: BadgeFn = () => {}, LOG: SmartLogFn = () => {}) {
-  // prima di importare toastr controlla se c’è già (evita conflitti)
+  // già presente → esci
   if (hasToastr()) {
-    BADGE("Deps", "Toastr present", "info");
+    BADGE("EPV[Deps]", "Toastr present", "debug");
     return;
   }
 
-  // Toastr 2.x dipende da jQuery → assicurati jQuery PRIMA
+  // dipendenza
   await ensureJQuery(opts, log, BADGE, LOG);
 
   const want = (opts.autoLoadDeps?.toastr ?? true) !== false;
   if (!want) {
-    BADGE("Deps", "Toastr autoload disabled", "warn");
+    BADGE("EPV[Deps]", "Toastr autoload disabled", "warn");
     return;
   }
 
   const css = opts.cdn?.toastrCss ?? cdnURLs.base + cdnURLs.toastr.v + cdnURLs.toastr.CSS;
   const js = opts.cdn?.toastrJs ?? cdnURLs.base + cdnURLs.toastr.v + cdnURLs.toastr.JS;
 
+  const keyCss = buildKey("css", css);
+  const keyJs = buildKey("js", js);
+
+  // prova a riusare se già in volo; altrimenti crea tu la Promise
+  let createdCss = false;
+  let createdJs = false;
+
+  let pCss = inFlightCss.get(keyCss);
+  if (!pCss) {
+    pCss = loadCssOnce(css, { media: "all" });
+    inFlightCss.set(keyCss, pCss);
+    createdCss = true;
+  }
+
+  let pJs = inFlightScripts.get(keyJs);
+  if (!pJs) {
+    pJs = loadScriptOnce(js, { module: false });
+    inFlightScripts.set(keyJs, pJs);
+    createdJs = true;
+  }
+
+  // logging “in-flight” se non le hai create tu
+  if (!createdCss || !createdJs) BADGE("EPV[Deps]", "Toastr loading (in-flight)", "info");
+
   try {
-    await Promise.all([loadCssOnce(css, { media: "all" }).then(() => BADGE("Deps", "toastr CSS loaded", "gold")), loadScriptOnce(js, { module: false }).then(() => BADGE("Deps", "toastr loaded", "gold"))]);
-    BADGE("Deps", "Toastr loaded (+CSS)", "info");
+    await Promise.all([pCss!, pJs!]);
+
+    // ricontrolla dopo l’attesa
+    if (hasToastr()) {
+      BADGE("EPV[Deps]", createdCss || createdJs ? "Toastr loaded (+CSS)" : "Toastr ready", "debug");
+    } else {
+      // JS/CSS caricati ma window.toastr non c’è (edge case)
+      BADGE("EPV[Deps]", "Toastr not available after load", "warn");
+    }
   } catch {
-    BADGE("Deps", "Failed to load Toastr from CDN", "err");
+    BADGE("EPV[Deps]", "Failed to load Toastr from CDN", "err");
+  } finally {
+    // rimuovi SOLO se le hai create tu (evita di oscurare altre attese)
+    if (createdCss) inFlightCss.delete(keyCss);
+    if (createdJs) inFlightScripts.delete(keyJs);
   }
 }
 
 /**
  * @internal
- * Orchestratore dipendenze:
- *  - Se `useToastrLogger` è true → forza tentativo jQuery+toastr.
- *  - Altrimenti rispetta `autoLoadDeps`.
- *  - Inputmask è indipendente dal logger.
+ * Garantisce che Inputmask sia disponibile secondo i flag `autoLoadDeps`.
+ *  - Non blocca l’inizializzazione della UI.
+ *  - Prima controlla deps/window, poi carica da CDN se consentito.
  */
-async function ensureDeps(opts: EuroPlateOptions, log: Logger, BADGE: BadgeFn = () => {}, LOG: SmartLogFn = () => {}) {
-  // Se l’utente ha chiesto esplicitamente il logger toastr, *forziamo* il tentativo di caricare jQuery+toastr
-  if (opts?.useToastrLogger) {
-    await ensureToastr({ ...opts, autoLoadDeps: { ...opts.autoLoadDeps, jquery: true, toastr: true } }, log, BADGE, LOG);
-  } else {
-    // altrimenti rispetta i flag autoLoadDeps
-    await ensureJQuery(opts, log, BADGE, LOG);
-    await ensureToastr(opts, log, BADGE, LOG); // se già presente non fa nulla
+async function ensureInputmask(opts: EuroPlateOptions, log: Logger, BADGE: BadgeFn = () => {}, LOG: SmartLogFn = () => {}) {
+  // --- 1️⃣ già presente (deps o globale)
+  if (hasIM(opts.deps)) {
+    BADGE("EPV[Deps]", "Inputmask present (deps/global)", "debug");
+    return;
   }
 
-  // Inputmask: sempre secondo flag, ed è indipendente dal **logger**
-  await ensureInputmask(opts, log, BADGE, LOG);
+  // --- 2️⃣ flag autoload
+  const want = (opts.autoLoadDeps?.inputmask ?? true) !== false;
+  if (!want) {
+    BADGE("EPV[Deps]", "Inputmask autoload disabled", "warn");
+    return;
+  }
+
+  // --- 3️⃣ URL + dedup
+  const js = opts.cdn?.inputmask ?? cdnURLs.base + cdnURLs.inputmask.v + cdnURLs.inputmask.JS;
+  const key = buildKey("js", js);
+
+  let created = false;
+  let p = inFlightScripts.get(key);
+  if (!p) {
+    p = loadScriptOnce(js, { module: false });
+    inFlightScripts.set(key, p);
+    created = true;
+  } else {
+    BADGE("EPV[Deps]", "Inputmask loading (in-flight)", "info");
+  }
+
+  try {
+    await p;
+    BADGE("EPV[Deps]", created ? "Inputmask loaded" : "Inputmask ready", "debug");
+  } catch {
+    BADGE("EPV[Deps]", "Failed to load Inputmask from CDN", "err");
+  } finally {
+    if (created) inFlightScripts.delete(key);
+  }
+}
+
+/**
+ * @internal
+ * ============================================================
+ *  🔧 ensureDeps (con gestione try/catch/finally)
+ *  Orchestratore dipendenze EuroPlate (client SDK)
+ * ------------------------------------------------------------
+ *  • Se useToastrLogger === true → forza jQuery+Toastr
+ *  • Altrimenti rispetta autoLoadDeps
+ *  • Inputmask indipendente dal logger
+ *  • Idempotente e concurrency-safe (si appoggia ai singoli ensure*)
+ *  - Coerente con pattern dei singoli ensure*
+ *  - Garantisce sequenza corretta e logging finale
+ * ============================================================
+ */
+async function ensureDeps(opts: EuroPlateOptions, log: Logger, BADGE: BadgeFn = () => {}, LOG: SmartLogFn = () => {}) {
+  const startTime = performance.now();
+  BADGE("EPV[Deps]", "Ensuring dependencies…", "info");
+
+  try {
+    // —————————————————————————————————————
+    // 1️⃣ Toastr (eventualmente forzato)
+    // —————————————————————————————————————
+    const wantToastr = !!opts.useToastrLogger || (opts.autoLoadDeps?.toastr ?? true) !== false;
+
+    if (wantToastr) {
+      // Forziamo jQuery + Toastr per compatibilità
+      const optsForToastr: EuroPlateOptions = {
+        ...opts,
+        autoLoadDeps: {
+          ...opts.autoLoadDeps,
+          jquery: true,
+          toastr: true,
+        },
+      };
+
+      await ensureToastr(optsForToastr, log, BADGE, LOG);
+    } else {
+      // Se non serve Toastr, valuta comunque jQuery se richiesto
+      const wantJQ = (opts.autoLoadDeps?.jquery ?? true) !== false;
+      if (wantJQ) {
+        await ensureJQuery(opts, log, BADGE, LOG);
+      }
+    }
+
+    // —————————————————————————————————————
+    // 2️⃣ Inputmask (indipendente dal logger)
+    // —————————————————————————————————————
+    const wantIM = (opts.autoLoadDeps?.inputmask ?? true) !== false;
+    if (wantIM) {
+      await ensureInputmask(opts, log, BADGE, LOG);
+    } else {
+      BADGE("EPV[Deps]", "Inputmask autoload disabled", "warn");
+    }
+
+    BADGE("EPV[Deps]", "Dependencies ensured successfully", "ok");
+  } catch (err) {
+    // —————————————————————————————————————
+    // Catch generale (es. eccezioni propagate o runtime)
+    // —————————————————————————————————————
+    const msg = err instanceof Error ? err.message : JSON.stringify(err ?? "unknown");
+    BADGE("EPV[Deps]", `Error during ensureDeps: ${msg}`, "err");
+    log.error?.("ensureDeps failed:", err);
+  } finally {
+    // —————————————————————————————————————
+    // Log tempo di completamento / debug telemetria
+    // —————————————————————————————————————
+    const dur = (performance.now() - startTime).toFixed(1);
+    BADGE("EPV[Deps]", `ensureDeps finished in ${dur} ms`, "debug");
+  }
 }
 
 /* ============================================================
@@ -786,8 +917,19 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
   let statusEl: HTMLElement | undefined = ui.status ?? undefined;
   // NEW: wrapper element (se presente)
   let wrapperEl: HTMLElement | null = null;
+
+  // merge dei campi top-level legacy nelle ui options
+  const uiMerged = {
+    ...ui,
+    statusMode: (opts as any).statusMode ?? ui.statusMode,
+    statusIcon: (opts as any).statusIcon ?? ui.statusIcon,
+    showStatusText: (opts as any).showStatusText ?? ui.showStatusText,
+    iconPosition: (opts as any).iconPosition ?? ui.iconPosition,
+  };
+  // 🔄 facoltativo ma utile: aggiorna opts.ui per riflettere il merge
+  (opts as any).ui = uiMerged;
   // ✅ risolvi configurazione status UNA SOLA VOLTA
-  const statusCfg = resolveStatusCfg(ui);
+  const statusCfg = resolveStatusCfg(uiMerged);
   const { statusMode, statusIcon, showStatusText, iconPosition } = statusCfg || {};
 
   // ----- AUTO-BUILD DOM SE wrapper È TRUTHY -----
@@ -974,7 +1116,9 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
     if (useToastrLogger === true && getToastr() && !logger) {
       log = makeToastrLogger(logPrefix, DBG);
       //log.info?.("Toastr logger attached");
-      BADGE("EuroPlate", "Toastr logger attached", "info");
+      BADGE("EuroPlate", "Toastr logger attached", "debug");
+      (opts.autoLoadDeps ||= {}).toastr = false;
+      (opts.autoLoadDeps ||= {}).jquery = false;
     }
     // se IM arriva dopo e non siamo in AUTO, prova ad applicare la mask
     if (hasIMBound() && selected !== "AUTO") {

@@ -1,20 +1,33 @@
 // types/logger-colors.d.ts
-export type ColorKey = "ok" | "warn" | "err" | "info" | "gold" | "bg1" | "bg3";
-export type CCColors = Record<ColorKey | "bg1" | "bg3", string>;
-export type BadgeFn = (mod: string, msg: string, color?: CCColorKey | string) => void;
+export type ColorKey = "ok" | "warn" | "err" | "info" | "debug" | "gold";
+export type BgKey    = "bg1" | "bg3";
+
+/** Tavolozza completa usata da CC_BADGE/CC_LOG */
+export type CCColors = Record<ColorKey | BgKey, string>;
+
+/** Firma del badge: accetta chiavi note o qualsiasi stringa CSS color */
+export type BadgeFn   = (mod: string, msg: string, color?: ColorKey | BgKey | string) => void;
 export type SmartLogFn = (...a: any[]) => void;
 
 declare global {
   interface Window {
-    CC_COLORS?: CCColors;
-    CC_BADGE?: BadgeFn = () => {};
-    CC_LOG?: SmartLogFn = () => {};
+    /** Palette globale (puoi impostare solo le chiavi che vuoi) */
+    CC_COLORS?: Partial<CCColors>;
+
+    /** Funzioni globali opzionali; saranno valorizzate a runtime */
+    CC_BADGE?: BadgeFn;
+    CC_LOG?: SmartLogFn;
+
+    /** Flag diagnostici */
     CC_LOGGER_READY?: boolean;
-    CC_EPV_DEBUG?: boolean; // EuroPlate
+
+    /** Toggle debug per EPV/S2 (se presenti) */
+    CC_EPV_DEBUG?: boolean;
     CC_EPV_OPTS?: { debug?: boolean };
-    CC_S2_DEBUG?: boolean; // Select2 compat
+
+    CC_S2_DEBUG?: boolean;
     CC_S2_OPTS?: { debug?: boolean };
   }
 }
 
-export{};
+export {};

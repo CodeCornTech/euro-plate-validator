@@ -10,6 +10,7 @@ export function ensureBadgeLogger(prefix: string, debug: boolean) {
     warn: "#f3b44a",
     err: "#e85959",
     info: "#7ac8ff",
+    debug: "#7e57c2", // 👈 viola "developer" (material deep-purple)
     gold: "#b69b6a",
     bg1: "#111",
     bg3: "#333",
@@ -24,9 +25,12 @@ export function ensureBadgeLogger(prefix: string, debug: boolean) {
   function localBADGE(mod: string, msg: string, colorKey?: ColorKey | string) {
     if (!debug) return;
     const c = G.CC_COLORS[colorKey as keyof CCColors] || colorKey || G.CC_COLORS.gold;
-    const tag = `%c CodeCorn™ ${mod} %c ${prefix} ${msg} %c`;
+    const txc = [G.CC_COLORS["gold"], G.CC_COLORS["info"], G.CC_COLORS["ok"]].includes(c) ? "#000" : "#fff";
+    //const tag = `%c CodeCorn™ ${mod} %c ${prefix} ${msg} %c`;
+    // ⚠️ niente prefix qui: lo aggiunge il wrapper BADGE sotto
+    const tag = `%c CodeCorn™ ${mod} %c ${msg} %c`;
     const css1 = `background:${G.CC_COLORS.bg1};color:#fff;padding:3px 6px;border-radius:4px 0 0 4px;`;
-    const css2 = `background:${c};color:#000;padding:3px 6px;`;
+    const css2 = `background:${c};color:${txc};font-weight:bold;padding:3px 6px;`;
     const css3 = `background:${G.CC_COLORS.bg3};color:#fff;padding:3px 6px;border-radius:0 4px 4px 0;`;
     try {
       console.log(tag, css1, css2, css3);
@@ -52,6 +56,7 @@ export function ensureBadgeLogger(prefix: string, debug: boolean) {
       }
       return String(a);
     });
+    // usa il badge globale ma aggiungi tu il prefix
     (G.CC_BADGE as any)("EuroPlate", `${prefix} ${parts.join(" ")}`, "ok");
   }
 
