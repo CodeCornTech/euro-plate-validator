@@ -65,13 +65,9 @@ export const COUNTRIES: CountryInfo[] = COUNTRY_CODES.map((c) => ({
 }));
 
 // Reverse lookups (by flag slug or name)
-export const FLAG_TO_CODE = Object.fromEntries(
-  COUNTRY_CODES.map((c) => [FLAG_MAP[c], c])
-) as Record<(typeof FLAG_MAP)[CountryCode], CountryCode>;
+export const FLAG_TO_CODE = Object.fromEntries(COUNTRY_CODES.map((c) => [FLAG_MAP[c], c])) as Record<(typeof FLAG_MAP)[CountryCode], CountryCode>;
 
-export const NAME_TO_CODE = Object.fromEntries(
-  COUNTRY_CODES.map((c) => [COUNTRY_NAMES[c], c])
-) as Record<(typeof COUNTRY_NAMES)[CountryCode], CountryCode>;
+export const NAME_TO_CODE = Object.fromEntries(COUNTRY_CODES.map((c) => [COUNTRY_NAMES[c], c])) as Record<(typeof COUNTRY_NAMES)[CountryCode], CountryCode>;
 
 /** Entry di pattern per tipo veicolo */
 export interface PatternSet {
@@ -122,7 +118,7 @@ export const INPUTMASK_LAYOUTS: Partial<Record<CountryKey, InputMaskLayout>> = {
   },
   FR: {
     mask: "AA-999-AA",
-    definitions: { A: { validator: "[A-Z]", casing: "upper" } },
+    definitions: { H: { validator: "[A-Z]", casing: "upper" } },
     placeholder: "__-___-__",
     keepStatic: true,
     showMaskOnHover: false,
@@ -130,7 +126,7 @@ export const INPUTMASK_LAYOUTS: Partial<Record<CountryKey, InputMaskLayout>> = {
   },
   ES: {
     mask: "9999 AAA",
-    definitions: { A: { validator: "[A-Z]", casing: "upper" } },
+    definitions: { H: { validator: "[A-Z]", casing: "upper" } },
     placeholder: "____ ___",
     keepStatic: true,
     showMaskOnHover: false,
@@ -138,16 +134,7 @@ export const INPUTMASK_LAYOUTS: Partial<Record<CountryKey, InputMaskLayout>> = {
   },
   // DE: volutamente senza mask (prefissi variabili: "B A 1", "M AA 1234", ecc.)
   NL: {
-    mask: [
-      "LL-999-LL",
-      "99-LLL-9",
-      "L-999-LL",
-      "LL-999-L",
-      "9-LL-999",
-      "LL-LL-99",
-      "99-LL-LL",
-      "LLL-99-L",
-    ],
+    mask: ["LL-999-LL", "99-LLL-9", "L-999-LL", "LL-999-L", "9-LL-999", "LL-LL-99", "99-LL-LL", "LLL-99-L"],
     definitions: {
       L: { validator: "[BDFGHJKLNPRSTVXYZ]", casing: "upper" },
     },
@@ -164,7 +151,7 @@ export const INPUTMASK_LAYOUTS: Partial<Record<CountryKey, InputMaskLayout>> = {
       "A 999 AAA", // B 999 AAA
     ],
     definitions: {
-      A: { validator: "[A-Z]", casing: "upper" },
+      H: { validator: "[A-Z]", casing: "upper" },
     },
     placeholder: "",
     keepStatic: true,
@@ -174,7 +161,7 @@ export const INPUTMASK_LAYOUTS: Partial<Record<CountryKey, InputMaskLayout>> = {
   SK: {
     mask: ["AA-999 AA", "AA999AA", "AA 999 AA"],
     definitions: {
-      A: { validator: "[A-Z]", casing: "upper" },
+      H: { validator: "[A-Z]", casing: "upper" },
     },
     placeholder: "",
     keepStatic: true,
@@ -250,6 +237,7 @@ export const RX: Record<CountryKey, CountryDef> = {
     name: "France",
     patterns: {
       // AA-000-AA (nessuno spazio)
+      // TESBVUG 1.0.13 
       car: [{ rx: /^[A-Z]{2}-\d{3}-[A-Z]{2}$/ }],
       //    car: [{ rx: /^[A-Z]{2}[-]\d{3}[-][A-Z]{2}$/ }],
       //car: [{ rx: /^[A-Z]{2}\-\d{3}\-[A-Z]{2}$/ }],
@@ -267,11 +255,7 @@ export const RX: Record<CountryKey, CountryDef> = {
   PT: {
     name: "Portugal",
     patterns: {
-      car: [
-        { rx: /^\d{2}-[A-Z]{2}-\d{2}$/ },
-        { rx: /^[A-Z]{2}-\d{2}-\d{2}$/ },
-        { rx: /^\d{2}-\d{2}-[A-Z]{2}$/ },
-      ],
+      car: [{ rx: /^\d{2}-[A-Z]{2}-\d{2}$/ }, { rx: /^[A-Z]{2}-\d{2}-\d{2}$/ }, { rx: /^\d{2}-\d{2}-[A-Z]{2}$/ }],
     },
   },
 

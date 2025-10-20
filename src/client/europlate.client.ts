@@ -18,17 +18,10 @@
  * Interno: helpers (cdn, loaders, logger, i18n, dom)
  */
 import { ensureBadgeLogger } from "./logger/ensureBadgeLogger.js";
-import type { ColorKey, CCColors, SmartLogFn, BadgeFn } from "./logger/ensureBadgeLogger.js";
+import type { SmartLogFn, BadgeFn } from "./logger/ensureBadgeLogger.js";
 import type { CountryKey } from "../countries.js";
-import {
-  //FLAG_MAP, // TODO: ALLINEARE O RIMUOVERE
-  COUNTRY_NAMES, // TODO: ALLINEARE O RIMUOVERE VEDI LINEA :393 const { ... COUNTRY_NAMES } = EuroMod;
-  supportedCountries,
-  normalizeCode,
-  getCountryName,
-} from "../countries.js";
+import { COUNTRY_NAMES, supportedCountries, normalizeCode, getCountryName } from "../countries.js";
 
-// 👇 in cima al file (scope di modulo)
 let __depsOnce: Promise<void> | null = null;
 
 export async function ensureDepsOnce(opts: EuroPlateOptions, log: Logger, BADGE: BadgeFn = () => {}, LOG: SmartLogFn = () => {}) {
@@ -1197,18 +1190,20 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
   };
 
   function hardClearMask(el?: HTMLInputElement | null) {
-    if (!el || !hasIMBound()) return; // 👈 use the bound helper
-    setTimeout(() => {
-      try {
-        (el as any)._imInstance?.remove?.();
-      } catch {}
-      try {
-        (el as any).inputmask?.remove?.();
-      } catch {}
-      (el as any)._imInstance = null;
-    }, 0);
+    if (!el) return;
+    try {
+      const prev = (el as any)._imInstance;
+      // rimuovi SOLO l'istanza precedente se esiste
+      if (prev?.remove) prev.remove();
+    } catch {}
+    try {
+      (el as any).inputmask?.remove?.();
+    } catch {}
+    (el as any)._imInstance = null;
+
     BADGE("EuroPlate", "mask:clear (hard)", "debug");
   }
+
   const hardClearMaskDebounced = debounce(hardClearMask, timings.clear);
 
   const normalizePattern = (p: string) =>
@@ -1553,7 +1548,6 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
       button.setAttribute("aria-expanded", "false");
     }
   };
-
   function selectCountry(code: "AUTO" | string, doFocus = true) {
     // normalizza/valida
     let next: "AUTO" | CountryKey = "AUTO";
@@ -1561,7 +1555,6 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
       const n = normalize(String(code || ""));
       next = isCountryKey(n) ? (n as CountryKey) : "AUTO";
     }
-
     // salva il precedente per sicurezza (se ti serve altrove)
     const prev = selected;
     selected = next;
@@ -1569,30 +1562,29 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
     // flag + placeholder
     setFlag(selected, flagIcon, flagLabel, lang);
     updatePlaceholderForCurrentSelection(selected, input, EuroMod, lang);
-    // flag + placeholder
-    setFlag(selected, flagIcon, flagLabel, lang);
-    updatePlaceholderForCurrentSelection(selected, input, EuroMod, lang);
 
-    // ⚠️ IMPORTANTISSIMO: rimuovi SUBITO la vecchia mask (no debounce)
-    hardClearMask(input); // usa la versione NON debounced
+    // 1) stacca SUBITO la vecchia mask (sync)
+    hardClearMask(input); // ⚠️ IMPORTANTISSIMO: rimuovi SUBITO la vecchia mask (no debounce)
 
     const hasText = !!input.value.trim();
     const short = hasText && input.value.trim().length <= 2;
 
     if (selected === "AUTO") {
-      // AUTO: niente mask
+      // 2) AUTO: nessuna mask
       if (!hasText) {
-        clearStatusUI(input, statusEl, wrapperEl); // stato neutro
+        clearStatusUI(input, statusEl, wrapperEl);
       } else {
-        // opzionale: riallinea subito contro allowed
-        validateNow();
+        // se vuoi allineare subito (facoltativo)
+        validateNow(); // opzionale
       }
     } else {
-      // NON-AUTO: applica la NUOVA mask SEMPRE (anche a campo vuoto)
+      // 3) NON-AUTO: applica SEMPRE la nuova mask (anche a vuoto)
       if (hasText) {
         const v = fmtFor(selected, input.value);
         if (input.value !== v) input.value = v;
       }
+      // puoi usare la versione immediata o lasciare il tuo debounced;
+      // se vuoi zero lag qui, crea una variante non debounced.
       applyMaskDebounced(input, selected);
 
       // stato neutro se vuoto o corto
@@ -1600,17 +1592,17 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
         clearStatusUI(input, statusEl, wrapperEl);
       } else {
         // se vuoi allineare subito (facoltativo)
-        validateNow();
+        validateNow(); // opzionale
       }
     }
-
     // chiudi dropdown
+
     if (dropdown && button) {
       dropdown.classList.remove("open");
       button.setAttribute("aria-expanded", "false");
     }
-
     // 👇 focus solo se booleano true esplicito
+
     if (doFocus === true) input.focus();
   }
 
