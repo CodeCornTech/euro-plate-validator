@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>@codecorn/euro-plate-validator — Demo</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.14/dist/assets/css/styles.css" />
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin: 32px; }
+    .wrap { max-width: 760px; margin: 0 auto; }
+    h1 { font-size: 24px; margin-bottom: 8px; }
+    p  { color:#555; }
+    .demo { margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>@codecorn/euro-plate-validator — Demo</h1>
+    <p>Inserisci una targa: seleziona un paese o usa AUTO. Minuscole accettate e forzate a MAIUSCOLO.</p>
+
+    <div id="plateBox" class="demo"></div>
+
+    <p style="margin-top:24px">
+      <a href="https://www.npmjs.com/package/@codecorn/euro-plate-validator" target="_blank" rel="noreferrer">npm</a> ·
+      <a href="https://github.com/<YOUR_ORG>/<YOUR_REPO>" target="_blank" rel="noreferrer">GitHub</a>
+    </p>
+  </div>
+
+  <script type="module">
+    import * as EuroMod from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.14/dist/browser/index.esm.js";
+    import { createEuroPlate } from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.14/dist/client/index.mjs";
+
+    const instance = createEuroPlate(EuroMod, {
+      wrapper: "#plateBox",
+      mode: "AUTO",
+      i18n: "IT",
+      allowedCountries: ["IT","FR","DE","ES","NL","UK"],
+      vehicleType: "any",
+      ui: { statusMode: "inline", statusIcon: "icon", showStatusText: false, iconPosition: "right" },
+      // autoload UMD deps — opzionali
+      autoLoadDeps: { inputmask: true, jquery: true, toastr: true },
+      useToastrLogger: true,
+      debug: true
+    });
+
+    // Esempio: pre-seleziona IT dopo 2s
+    // setTimeout(()=>instance.setCountry("IT"), 2000);
+  </script>
+</body>
+</html>
