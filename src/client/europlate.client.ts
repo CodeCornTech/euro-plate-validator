@@ -1548,6 +1548,7 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
       button.setAttribute("aria-expanded", "false");
     }
   };
+  
   function selectCountry(code: "AUTO" | string, doFocus = true) {
     // normalizza/valida
     let next: "AUTO" | CountryKey = "AUTO";
