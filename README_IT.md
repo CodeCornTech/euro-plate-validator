@@ -1,6 +1,6 @@
 # 🌍 @codecorn/euro-plate-validator
 
-> 🚗 Validatore di targhe europee (Russia esclusa). Validazione della sintassi basata su espressioni regex multi-paese per targhe UE/SEE. Funziona in **Node.js/TypeScript** e nel **browser** (con un'interfaccia utente client minima).
+> 🚗 Validatore di targhe europee (Russia esclusa). Validazione della sintassi basata su espressioni regex multi-paese per targhe UE/SEE. Funziona in **Node.js/TypeScript** e nel **browser** (UI client leggera).
 
 [![Lang: EN](https://img.shields.io/badge/docs-English-red?style=for-the-badge)](./README.md)
 
@@ -12,15 +12,16 @@
 
 ---
 
-## ✨ Features
+## ✨ Caratteristiche
 
-- ✅ **Multi-country** (25+ EU/EEA)
-- 🚫 **Russia excluded** by design
-- 🔠 Normalization (spazi, trattini) + formattatori per paese
+- ✅ **Multi-country** (25+ EU/EEA) — auto o paese fisso
+- 🏍️ Tipi veicolo: `car`, `bike`, `any`
+- 🔠 Normalizzazione (spazi/trattini) + formattatori per paese
+- ↕️ **Minuscole accettate** in input e forzate a **MAIUSCOLO** in mask (token `L` custom)
 - 🖥 **Node/TypeScript** + **Browser** (ESM/IIFE)
-- 🧩 **Client SDK** leggero: input + dropdown nazioni + status + **Inputmask** opzionale
+- 🧩 **Client SDK** leggero: input + dropdown nazioni + status + integrazione **Inputmask** opzionale
 - 🌐 **i18n IT/EN** built-in
-- 🧯 **Autoload deps** da CDN con **override** URL e fallback safe (senza hard fail)
+- 🧯 **Autoload deps** da CDN con **override** URL e fallback safe
 
 ---
 
@@ -38,19 +39,19 @@ npm install @codecorn/euro-plate-validator
 
 ### Core (browser)
 
-- **ESM (browser)** `https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.13/dist/browser/index.esm.js`
+- **ESM (browser)** `https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.14/dist/browser/index.esm.js`
 
-- **IIFE (global `window.EuroPlateValidator`)** `https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.13/dist/browser/index.iife.min.js`
+- **IIFE (global `window.EuroPlateValidator`)** `https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.14/dist/browser/index.iife.min.js`
 
 ### Client SDK (UI)
 
-- **ESM** `https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.13/dist/client/index.mjs`
+- **ESM** `https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.14/dist/client/index.mjs`
 
-- **CJS (Node)** `https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.13/dist/client/europlate.client.cjs`
+- **CJS (Node)** `https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.14/dist/client/europlate.client.cjs`
 
 ### Assets CSS
 
-- `https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.13/dist/assets/css/styles.css`
+- `https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.14/dist/assets/css/styles.css`
 - (compat shim) `…/assets/css/styles.css` → include/forward a `styles.css`
 
 > Se vedi file non aggiornati, puoi forzare un purge su jsDelivr.
@@ -127,14 +128,15 @@ type EuroPlateOptions = {
   formatters?: Record<string, (s: string) => string>; // per-CC
 
   // Timings
-  timings?: { debounce?: number; clear?: number };
+  timings?: { debounce?: number; clear?: number }; // default: 80/60
 
   // Dipendenze / logging
-  deps?: { inputmask?: any }; // inject manuale (es. window.Inputmask)
-  autoLoadDeps?: { inputmask?: boolean }; // default: true (autoload UMD)
-  cdn?: { inputmask?: string }; // override URL CDN Inputmask
-  logger?: Logger;
-  debug?: boolean;
+  deps?: { inputmask?: any }; // iniezione manuale (es. window.Inputmask)
+  autoLoadDeps?: { inputmask?: boolean; jquery?: boolean; toastr?: boolean }; // autoload UMD
+  cdn?: { inputmask?: string }; // override URL CDN
+  logger?: (level: string, ...args: any[]) => void;
+  debug?: boolean; // abilita log BADGE/LOG
+  useToastrLogger?: boolean; // route log su Toastr se presente
 };
 ```
 
@@ -175,13 +177,13 @@ type EuroPlateInstance = {
 ### A ) Avvio rapido con configurazione `common` condivisa + autoload dipendenze ( Inputmask , jQuery , Toastr )
 
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.13/dist/assets/css/styles.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.14/dist/assets/css/styles.css" />
 
 <div id="plateBox"></div>
 
 <script type="module">
-  import * as EuroMod from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.13/dist/browser/index.esm.js";
-  import { createEuroPlate } from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.13/dist/client/index.mjs";
+  import * as EuroMod from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.14/dist/browser/index.esm.js";
+  import { createEuroPlate } from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.14/dist/client/index.mjs";
 
   // Opzioni comuni usate in tutti gli esempi
   const common = {
@@ -223,12 +225,12 @@ type EuroPlateInstance = {
 ### B ) Fornisci tu `Inputmask` manualmente ( UMD → `window.Inputmask` )
 
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.13/dist/assets/css/styles.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.14/dist/assets/css/styles.css" />
 <script src="https://cdn.jsdelivr.net/npm/inputmask@5.0.9/dist/inputmask.min.js"></script>
 
 <script type="module">
-  import * as EuroMod from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.13/dist/browser/index.esm.js";
-  import { createEuroPlate } from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.13/dist/client/index.mjs";
+  import * as EuroMod from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.14/dist/browser/index.esm.js";
+  import { createEuroPlate } from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.14/dist/client/index.mjs";
 
   createEuroPlate(EuroMod, {
     wrapper: "#plateBox",
@@ -245,8 +247,8 @@ type EuroPlateInstance = {
 
 ```html
 <script type="module">
-  import * as EuroMod from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.13/dist/browser/index.esm.js";
-  import { createEuroPlate } from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.13/dist/client/index.mjs";
+  import * as EuroMod from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.14/dist/browser/index.esm.js";
+  import { createEuroPlate } from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.14/dist/client/index.mjs";
 
   createEuroPlate(EuroMod, {
     wrapper: "#plateBox",
@@ -312,16 +314,16 @@ add_action('wp_enqueue_scripts', function () {
 
   wp_enqueue_style(
     'epv-styles',
-    'https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.13/dist/assets/css/styles.css',
+    'https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.14/dist/assets/css/styles.css',
     [],
-    '1.0.13'
+    '1.0.14'
   );
 
   add_filter('script_loader_tag', function ($tag, $handle) {
     if ($handle === 'epv-init') {
       return '<script type="module">' .
-        'import * as EuroMod from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.13/dist/browser/index.esm.js";' .
-        'import { createEuroPlate } from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.13/dist/client/index.mjs";' .
+        'import * as EuroMod from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.14/dist/browser/index.esm.js";' .
+        'import { createEuroPlate } from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.14/dist/client/index.mjs";' .
         'window.__epvInit=(id,opts)=>createEuroPlate(EuroMod,Object.assign({wrapper:"#"+id,mode:"AUTO",i18n:"IT",debug:true,autoFocusOnInit:false},opts||{}));' .
       '</script>';
     }
@@ -399,14 +401,33 @@ Exit code: `0` valido, `1` non valido, `2` errori input.
 
 ## 🧾 Changelog (highlights)
 
+### 1.0.14
+
+- **Inputmask**
+  - Merge sicuro delle `definitions` (niente override secco dei default).
+  - Nuovo token **`L`** (lettera) che accetta minuscole e le forza a **MAIUSCOLO** (`casing: "upper"`).
+  - Evitato override di `A`/`9`; usare `H` (IT) e `C` (ES) solo dove serve.
+  - `applyMaskNow` immediata al cambio paese (niente race col debounce).
+  - Placeholder finalizzati via `finalizeInputMaskLayouts` + test `scripts/test-placeholders.mjs`.
+
+- **Client SDK**
+  - Logging centralizzato (`imLog`, `imPreLog`, `imMounted`, `imError`) su `BADGE/LOG` quando `debug: true`.
+  - Supporto minuscole in input su tutti i layout via token `L`.
+  - Esempi aggiornati con `autoLoadDeps: { inputmask: true, jquery: true, toastr: true }` e `useToastrLogger: true`.
+
+- **Docs**
+  - CDN aggiornato a **1.0.14**.
+  - Nota su minuscole accettate + uppercase automatico.
+  - ## Linee guida: **non** ridefinire `A`/`9`; definire solo token custom per alfabeti ristretti.
+
+---
+
 ### 1.0.13
 
-- NEW: `autoFocusOnInit` (default `false`) — niente focus automatico all’init.
-- NEW: `preserveInputAttrs` — evita di sovrascrivere `id`/`name` su input esterni.
-- UX: classi rinominate da `iti__*` a `epv__*` + CSS aggiornato (`styles.css`).
-- Deps: autoload **Inputmask** UMD da CDN se assente; `deps.inputmask` per inject manuale; `cdn.inputmask` per override URL; `autoLoadDeps.inputmask` per disattivare.
-- I18n: IT/EN + `AUTO` (auto-pick da `navigator.language`).
-- Stabilità: placeholder dinamici, formatter per CC (FR/IT/ES), debounce/clear timings.
+- `autoFocusOnInit` (default `false`), `preserveInputAttrs`
+- Classi CSS `iti__*` → `epv__*`
+- Autoload Inputmask UMD + override URL
+- i18n IT/EN/AUTO; placeholder dinamici; debounce
 
 ---
 

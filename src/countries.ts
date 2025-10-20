@@ -1,4 +1,5 @@
 // src/countries.ts
+import { finalizeInputMaskLayouts } from "./utils/placeholders.js";
 
 // prettier-ignore
 /** Tutti i country code supportati (Russia esclusa) */
@@ -94,86 +95,264 @@ export interface InputMaskLayout {
   placeholder?: string;
 }
 
-/** Mappe leggibili per UI/placeholder/doc */
+/** Mappe leggibili per UI / placeholder / doc */
 export const DISPLAY_FORMATS: Partial<Record<CountryKey, string>> = {
+  // ──────────────────────────────── EUROZONA BASE ────────────────────────────────
   IT: "AA 999 AA", // (senza I O Q U)
   FR: "AA-999-AA",
-  ES: "9999 AAA",
-  NL: "AA-999-AA | 99-AAA-9 | A-999-AA | AA-999-A | 9-AA-999",
-  RO: "BB 99 AAA / B 999 AAA",
+  ES: "9999 BBB", // (solo consonanti)
+  DE: "B-AA 1234", // variabile (prefisso+serie)
+  NL: "AA-999-AA | 99-AAA-9 | A-999-AA | AA-999-A | 9-AA-999 | LL-LL-99 | 99-LL-LL | LLL-99-L",
+  PT: "99-AA-99 | AA-99-99 | 99-99-AA",
+  BE: "1-ABC-123 | ABC-123",
+  CH: "GE 123456",
+  AT: "W 1234 AB",
+  IE: "23-D-12345",
+  LU: "123456 | 12-3456",
+  DK: "AB 12 345",
+  SE: "ABC 12A",
+  NO: "AB 12345",
+  FI: "ABC-123",
+  PL: "WW 12345", // formato generico
+  CZ: "1AB 2345",
   SK: "AA-999 AA",
-  // DE variabile → niente formato singolo
+  HU: "ABC-123 | AAAA-123 | AA99-AA",
+  RO: "BB 99 AAA / B 999 AAA",
+  BG: "AA 9999 AA",
+  SI: "LJ-123-AB",
+  HR: "ST 1234-AA",
+  GR: "ABC-1234",
+  LT: "ABC 123",
+  LV: "AB-1234",
+  EE: "123 ABC",
+  UA: "AA 1234 AA",
+  UK: "AB12 CDE",
 };
 
 /** Layout Inputmask per digitazione assistita (coerenti con le regex) */
 export const INPUTMASK_LAYOUTS: Partial<Record<CountryKey, InputMaskLayout>> = {
+  // ───────────────────────────────── ITALIA ─────────────────────────────────
   IT: {
-    mask: "AA 999 AA",
-    // H = [A-HJ-NP-RTV-Z] (niente I, O, Q, U)
-    definitions: { H: { validator: "[A-HJ-NP-RTV-Z]", casing: "upper" } },
+    // AA 999 AA  ma con alfabeto ristretto (niente I O Q U)
+    mask: "HH 999 HH",
+    definitions: {
+      // accetta minuscole+maiuscole, poi upper via casing
+      H: { validator: "[A-HJ-NPR-TV-Za-hj-npr-tv-z]", casing: "upper" },
+    },
     placeholder: "__ ___ __",
     keepStatic: true,
     showMaskOnHover: false,
     showMaskOnFocus: true,
   },
+
+  // ──────────────────────────────── FRANCIA ─────────────────────────────────
   FR: {
-    mask: "AA-999-AA",
-    definitions: { H: { validator: "[A-Z]", casing: "upper" } },
+    // AA-999-AA (solo trattini) — nessuna defs: usa L base dal client
+    mask: "LL-999-LL",
     placeholder: "__-___-__",
     keepStatic: true,
     showMaskOnHover: false,
     showMaskOnFocus: true,
   },
+
+  // ──────────────────────────────── SPAGNA ──────────────────────────────────
   ES: {
-    mask: "9999 AAA",
-    definitions: { H: { validator: "[A-Z]", casing: "upper" } },
+    // 9999 BBB  → consonanti senza A E I O U Q Ñ
+    mask: "9999 CCC",
+    definitions: {
+      // consonanti in entrambe le casse, poi upper
+      C: { validator: "[BCDFGHJKLMNPRSTVWXYZbcdfghjklmnprstvwxyz]", casing: "upper" },
+    },
     placeholder: "____ ___",
     keepStatic: true,
     showMaskOnHover: false,
     showMaskOnFocus: true,
   },
-  // DE: volutamente senza mask (prefissi variabili: "B A 1", "M AA 1234", ecc.)
+
+  // ──────────────────────────────── REGNO UNITO ─────────────────────────────
+  UK: {
+    // AB12 CDE (formato corrente) — nessuna defs: L base
+    mask: "LL99 LLL",
+    placeholder: "__ __ ___",
+    keepStatic: true,
+    showMaskOnHover: false,
+    showMaskOnFocus: true,
+  },
+  // ──────────────────────────────── PAESI BASSI ─────────────────────────────
   NL: {
+    // Sidecode multipli
     mask: ["LL-999-LL", "99-LLL-9", "L-999-LL", "LL-999-L", "9-LL-999", "LL-LL-99", "99-LL-LL", "LLL-99-L"],
-    definitions: {
-      L: { validator: "[BDFGHJKLNPRSTVXYZ]", casing: "upper" },
-    },
-    placeholder: "", // no underscore
+    // Alfabeto NL senza A E I O U Q
+    definitions: { L: { validator: "[BDFGHJKLNPRSTVXYZbdfghjklnprstvxyz]", casing: "upper" } },
+    placeholder: "",
     keepStatic: true,
     showMaskOnHover: false,
     showMaskOnFocus: false,
   },
+
+  // ──────────────────────────────── ROMANIA ─────────────────────────────────
   RO: {
-    mask: [
-      "AA 99 AAA",
-      "AA 999 AAA",
-      "A 99 AAA", // B 99 AAA
-      "A 999 AAA", // B 999 AAA
-    ],
-    definitions: {
-      H: { validator: "[A-Z]", casing: "upper" },
-    },
+    // BB 99 AAA / B 999 AAA — nessuna defs: L base
+    mask: ["LL 99 LLL", "LL 999 LLL", "L 99 LLL", "L 999 LLL"],
     placeholder: "",
     keepStatic: true,
     showMaskOnHover: false,
     showMaskOnFocus: false,
   },
+
+  // ──────────────────────────────── SLOVACCHIA ──────────────────────────────
   SK: {
-    mask: ["AA-999 AA", "AA999AA", "AA 999 AA"],
-    definitions: {
-      H: { validator: "[A-Z]", casing: "upper" },
-    },
+    // DD-999LL  (accetta varianti con / senza spazi / trattino) — L base
+    mask: ["LL-999 LL", "LL999LL", "LL 999 LL"],
     placeholder: "",
     keepStatic: true,
     showMaskOnHover: false,
     showMaskOnFocus: false,
   },
+
+  // ──────────────────────────────── PORTOGALLO ──────────────────────────────
+  PT: {
+    // L base
+    mask: ["99-LL-99", "LL-99-99", "99-99-LL"],
+    keepStatic: true,
+    showMaskOnHover: false,
+    showMaskOnFocus: false,
+  },
+
+  // ──────────────────────────────── BELGIO ──────────────────────────────────
+  BE: {
+    // L base
+    mask: ["9-LLL-999", "LLL-999"],
+    keepStatic: true,
+    showMaskOnHover: false,
+    showMaskOnFocus: false,
+  },
+
+  // ──────────────────────────────── DANIMARCA ───────────────────────────────
+  DK: {
+    // AA 12 345 — L base
+    mask: "LL 99 999",
+    keepStatic: true,
+  },
+
+  // ──────────────────────────────── SVEZIA ──────────────────────────────────
+  SE: {
+    // ABC 12X  (X alfanumerico) — L base; X con minuscole
+    mask: "LLL 99 X",
+    definitions: {
+      X: { validator: "[A-Za-z0-9]", casing: "upper" },
+    },
+    keepStatic: true,
+  },
+
+  // ──────────────────────────────── NORVEGIA ────────────────────────────────
+  NO: {
+    // AA 12345 — L base
+    mask: "LL 99999",
+    keepStatic: true,
+  },
+
+  // ──────────────────────────────── FINLANDIA ───────────────────────────────
+  FI: {
+    // ABC-123 — L base
+    mask: "LLL-999",
+    keepStatic: true,
+  },
+
+  // ──────────────────────────────── REP. CECA ───────────────────────────────
+  CZ: {
+    // 1AB 2345 — L base
+    mask: "9 LL 9999",
+    keepStatic: true,
+  },
+
+  // ──────────────────────────────── UNGHERIA ────────────────────────────────
+  HU: {
+    // ABC-123  /  AAAA-123  /  AA99-AA — L base
+    mask: ["LLL-999", "LLLL-999", "LL99-LL"],
+    keepStatic: true,
+  },
+
+  // ──────────────────────────────── BULGARIA ────────────────────────────────
+  BG: {
+    // L base
+    mask: ["L 9999 L", "LL 9999 LL", "L9999L", "LL9999LL"],
+    keepStatic: true,
+  },
+
+  // ──────────────────────────────── SLOVENIA ────────────────────────────────
+  SI: {
+    // L base
+    mask: ["LL-999- L", "LL-999- LL", "LL-9999- L", "LL-9999- LL"],
+    keepStatic: true,
+  },
+
+  // ──────────────────────────────── CROAZIA ─────────────────────────────────
+  HR: {
+    // L base
+    mask: ["LL 999- LL", "LL 9999- LL"],
+    keepStatic: true,
+  },
+
+  // ──────────────────────────────── GRECIA ──────────────────────────────────
+  GR: {
+    // L base
+    mask: "LLL-9999",
+    keepStatic: true,
+  },
+
+  // ──────────────────────────────── LITUANIA ────────────────────────────────
+  LT: {
+    // L base
+    mask: "LLL 999",
+    keepStatic: true,
+  },
+
+  // ──────────────────────────────── LETTONIA ────────────────────────────────
+  LV: {
+    // L base
+    mask: "LL-9999",
+    keepStatic: true,
+  },
+
+  // ──────────────────────────────── ESTONIA ─────────────────────────────────
+  EE: {
+    // L base
+    mask: "999 LLL",
+    keepStatic: true,
+  },
+
+  // ──────────────────────────────── UCRAINA ─────────────────────────────────
+  UA: {
+    // L base
+    mask: "LL 9994 LL".replace("9994", "9999"),
+    keepStatic: true,
+  },
+
+  // ──────────────────────────────── LUSSEMBURGO ─────────────────────────────
+  LU: {
+    // 4–6 cifre  oppure  1–2 cifre - 3–4 cifre
+    mask: ["9999", "99999", "999999", "9-999", "99-999", "9-9999", "99-9999"],
+    keepStatic: true,
+  },
+
+  // ──────────────────────────────── GERMANIA / AUSTRIA / SVIZZERA ──────────
+  // Prefissi/lunghezze variabili, caratteri speciali (ÄÖÜ) → niente mask rigida.
+  // DE: —  AT: —  CH: —
 };
 
-/** Helper ergonomici */
-export function getInputMask(country: CountryKey): InputMaskLayout | null {
-  return (INPUTMASK_LAYOUTS as Record<CountryKey, InputMaskLayout | undefined>)[country] ?? null;
+// /** Helper ergonomici */
+// 🔚 Esporta una versione finale che garantisce i placeholder dove mancano
+export const INPUTMASK_LAYOUTS_FINAL = finalizeInputMaskLayouts(
+  INPUTMASK_LAYOUTS, // <- T = Partial<Record<CountryKey, InputMaskLayout>>
+  DISPLAY_FORMATS
+);
+
+// opzionale: punta i consumer alla mappa "final"
+export function getInputMask(country: CountryKey) {
+  return (INPUTMASK_LAYOUTS_FINAL as Record<CountryKey, InputMaskLayout | undefined>)[country] ?? null;
 }
+
 export function getDisplayFormat(country: CountryKey): string | null {
   return (DISPLAY_FORMATS as Record<CountryKey, string | undefined>)[country] ?? null;
 }
@@ -237,7 +416,7 @@ export const RX: Record<CountryKey, CountryDef> = {
     name: "France",
     patterns: {
       // AA-000-AA (nessuno spazio)
-      // TESBVUG 1.0.13 
+      // TESBVUG 1.0.13
       car: [{ rx: /^[A-Z]{2}-\d{3}-[A-Z]{2}$/ }],
       //    car: [{ rx: /^[A-Z]{2}[-]\d{3}[-][A-Z]{2}$/ }],
       //car: [{ rx: /^[A-Z]{2}\-\d{3}\-[A-Z]{2}$/ }],

@@ -877,6 +877,7 @@ function resolveStatusCfg(ui?: EuroPlateUI) {
     iconPosition: ui?.iconPosition ?? "right",
   } as Required<Pick<EuroPlateUI, "statusMode" | "statusIcon" | "showStatusText" | "iconPosition">>;
 }
+
 /* ============================================================
  * ENTRYPOINT PUBBLICO
  * ============================================================ */
@@ -1138,7 +1139,8 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
     // se IM arriva dopo e non siamo in AUTO, prova ad applicare la mask
     if (hasIMBound() && selected !== "AUTO") {
       try {
-        applyMaskDebounced(input, selected);
+        //applyMaskDebounced(input, selected);
+        applyMaskNow(input, selected);
       } catch {}
     }
   });
@@ -1200,26 +1202,154 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
       (el as any).inputmask?.remove?.();
     } catch {}
     (el as any)._imInstance = null;
-
-    BADGE("EuroPlate", "mask:clear (hard)", "debug");
+    imLog("debug", "mask:clear (hard)");
   }
 
   const hardClearMaskDebounced = debounce(hardClearMask, timings.clear);
+  
+  // untill 1.0.13
+  // const normalizePattern = (p: string) =>
+  //   String(p)
+  //     .replace(/A\{(\d+)\}/g, (_, n) => "A".repeat(+n))
+  //     .replace(/9\{(\d+)\}/g, (_, n) => "9".repeat(+n));
+  
+  const normalizePattern = (p: string) => String(p).replace(/([ALH9X])\{(\d)\}/g, (_, t, n) => String(t).repeat(n));
 
-  const normalizePattern = (p: string) =>
-    String(p)
-      .replace(/A\{(\d+)\}/g, (_, n) => "A".repeat(+n))
-      .replace(/9\{(\d+)\}/g, (_, n) => "9".repeat(+n));
+  // ===== Logging centralizzato (usa BADGE/LOG se presenti) =====
+  function imLog(level: "debug" | "info" | "warn" | "error", title: string, payload?: any) {
+    // rispettare il toggle debug: emetti solo warn/error sempre; debug/info solo se DBG
+    if (!DBG && (level === "debug" || level === "info")) return;
+    const msg = payload ? `${title} :: ${typeof payload === "string" ? payload : JSON.stringify(payload, null, 2)}` : title;
+    try {
+      if (typeof BADGE === "function") {
+        BADGE("EuroPlate", msg, level);
+        return;
+      }
+      if (typeof LOG === "function") {
+        LOG(msg);
+        return;
+      }
+    } catch {}
+    // fallback console
+    const fn = level === "error" ? console.error : level === "warn" ? console.warn : level === "info" ? console.info : console.debug;
+    fn(`[EPV][${level}] ${msg}`);
+  }
+
+  function imPreLog(kind: "now" | "debounced", country: string, optsIM: any, mergedDefs: Record<string, any>, imVersion: string) {
+    const used = tokensUsedInMask(optsIM.mask);
+    const have = Object.keys(mergedDefs || {});
+    const missing = used.filter((t) => !have.includes(t) && !/^[90#]$/.test(t));
+    imLog("debug", `IM.apply.${kind}: pre`, {
+      country,
+      imVersion,
+      mask: optsIM.mask,
+      placeholder: optsIM.placeholder,
+      tokensUsed: used,
+      defKeys: have.slice().sort(),
+      missingDefs: missing,
+    });
+    if (missing.length) {
+      imLog("warn", `IM.apply.${kind}: missing definitions [${missing.join(", ")}]`, { country });
+    }
+  }
+
+  function imMounted(kind: "now" | "debounced", country: string, mask: string | string[]) {
+    imLog("info", `IM.apply.${kind}: mounted`, { country, mask });
+  }
+
+  function imError(kind: "now" | "debounced", country: string, e: unknown) {
+    imLog("error", `IM.apply.${kind}: instance.mask() failed`, { country, error: String(e) });
+  }
+
+  function tokensUsedInMask(mask: string | string[]) {
+    const src = Array.isArray(mask) ? mask.join("|") : mask;
+    const set = new Set<string>();
+    for (const ch of src) {
+      if (/[A-Z0-9#]/.test(ch)) set.add(ch);
+    }
+    // riduciamo ai token che ci interessano
+    const tokens = Array.from(set)
+      .filter((t) => /[LHCXAH]|[90#]/.test(t))
+      .sort();
+    return tokens;
+  }
+
+  // Token lettera base, SEMPRE presente (Inputmask non ha 'L' di default)
+  const baseLetterDefs = {
+    // accetta a–z o A–Z, poi forziamo maiuscolo con casing
+    L: { validator: "[A-Za-z]", casing: "upper" },
+  };
+
+  function applyMaskNow(inputEl: HTMLInputElement, country: string) {
+    if (!hasIMBound()) return;
+    const IM = getIMBound();
+    if (!IM || !inputEl || !country || country === "AUTO") return;
+
+    const spec = getInputMask(country);
+    if (!spec) return;
+
+    const defaultsRoot = (IM as any)?.prototype?.defaults ?? (window as any).Inputmask?.prototype?.defaults ?? undefined;
+    const defaultDefs = defaultsRoot?.definitions ?? undefined;
+    const imVersion = (IM as any)?.prototype?.defaults?.version ?? (window as any).Inputmask?.prototype?.defaults?.version ?? "unknown";
+
+    // Unisci: default → base L → definitions specifiche (H, C, …)
+    const mergedDefs = { ...(defaultDefs || {}), ...baseLetterDefs, ...(spec.definitions || {}) };
+    const optsIM: any = {
+      mask: normalizePattern(spec.mask),
+      keepStatic: spec.keepStatic ?? true,
+      greedy: spec.greedy ?? false,
+      placeholder: spec.placeholder ?? "",
+      showMaskOnHover: spec.showMaskOnHover ?? false,
+      showMaskOnFocus: spec.showMaskOnFocus ?? false,
+      jitMasking: true,
+      autoUnmask: false,
+      insertModeVisual: false,
+      rightAlign: false,
+      definitions: mergedDefs, // 👈 ora sempre passato
+      onBeforeMask: (v: string) => fmtFor(country, String(v ?? "")),
+      onBeforePaste: (p: string) => fmtFor(country, String(p ?? "")),
+      positionCaretOnClick: "lvp",
+    };
+
+    // --- LOG PRE --- @@DEBUG
+    imPreLog("now", country, optsIM, mergedDefs, imVersion);
+    // --- LOG PRE --- @@DEBUG
+
+    try {
+      (inputEl as any)._imInstance?.remove?.();
+    } catch {}
+    try {
+      (inputEl as any).inputmask?.remove?.();
+    } catch {}
+
+    let instance: any;
+    try {
+      instance = IM(optsIM);
+    } catch {
+      instance = new (IM as any)(optsIM);
+    }
+
+    try {
+      instance.mask(inputEl);
+      imMounted("now", country, optsIM.mask);
+    } catch (e) {
+      imError("now", country, e);
+      throw e;
+    }
+    (inputEl as any)._imInstance = instance;
+  }
 
   const applyMaskDebounced = debounce((inputEl: HTMLInputElement, country: string) => {
     if (!hasIMBound()) {
-      BADGE("EuroPlate", "Inputmask non disponibile: salto applyMask", "warn");
+      // BADGE("EuroPlate", "Inputmask non disponibile: salto applyMask", "warn");
+      imLog("warn", "IM.apply.debounced: Inputmask non disponibile");
       return;
     }
     const IM = getIMBound()! as IMGlobal; // tipo: IMGlobal
 
     if (!IM) {
-      BADGE("EuroPlate", "Inputmask non disponibile (again): RETURN!", "warn");
+      //  BADGE("EuroPlate", "Inputmask non disponibile (again): RETURN!", "warn");
+      imLog("warn", "IM.apply.debounced: Inputmask non disponibile (again)");
       return;
     }
 
@@ -1234,26 +1364,33 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
       return;
     }
 
+    const defaultsRoot = (IM as any)?.prototype?.defaults ?? (window as any).Inputmask?.prototype?.defaults ?? undefined;
+    const defaultDefs = defaultsRoot?.definitions ?? undefined;
+    const imVersion = defaultsRoot?.version ?? "unknown";
+
+    // Unisci: default → base L → definitions specifiche (H, C, …)
+    const mergedDefs = { ...(defaultDefs || {}), ...baseLetterDefs, ...(spec.definitions || {}) };
+
     const optsIM = {
       mask: normalizePattern(spec.mask),
       keepStatic: spec.keepStatic ?? true,
       greedy: spec.greedy ?? false,
-      placeholder: "",
-      showMaskOnHover: false,
-      showMaskOnFocus: false,
+      placeholder: spec.placeholder ?? "", // 👈 usa i placeholder finalizzati
+      showMaskOnHover: spec.showMaskOnHover ?? false,
+      showMaskOnFocus: spec.showMaskOnFocus ?? false,
       jitMasking: true,
       autoUnmask: false,
       insertModeVisual: false,
       rightAlign: false,
-      definitions: spec.definitions || {
-        A: { validator: "[A-Z]", casing: "upper" },
-        H: { validator: "[A-HJ-NP-RTV-Z]", casing: "upper" },
-        9: { validator: "[0-9]" },
-      },
+      definitions: mergedDefs, // 👈 ora sempre passato
       onBeforeMask: (v: string) => fmtFor(country, String(v ?? "")),
       onBeforePaste: (p: string) => fmtFor(country, String(p ?? "")),
       positionCaretOnClick: "lvp",
     };
+
+    // --- LOG PRE --- @@DEBUG
+    imPreLog("now", country, optsIM, mergedDefs, imVersion);
+    // --- LOG PRE --- @@DEBUG
 
     try {
       (inputEl as any)._imInstance?.remove?.();
@@ -1269,9 +1406,16 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
       instance = new IM(optsIM);
     }
 
-    instance.mask(inputEl);
-    (inputEl as any)._imInstance = instance;
-    BADGE("EuroPlate", JSON.stringify({ logMsg: "mask:apply", country, mask: optsIM.mask }, null, 2), "debug");
+    // instance.mask(inputEl);
+    // (inputEl as any)._imInstance = instance;
+    // BADGE("EuroPlate", JSON.stringify({ logMsg: "mask:apply", country, mask: optsIM.mask }, null, 2), "debug");
+    try {
+      instance.mask(inputEl);
+      (inputEl as any)._imInstance = instance;
+      imMounted("debounced", country, optsIM.mask);
+    } catch (e) {
+      imError("debounced", country, e);
+    }
   }, timings.debounce);
 
   function clearStatusUI(input: HTMLInputElement, status?: HTMLElement, wrap?: HTMLElement | null) {
@@ -1548,7 +1692,7 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
       button.setAttribute("aria-expanded", "false");
     }
   };
-  
+
   function selectCountry(code: "AUTO" | string, doFocus = true) {
     // normalizza/valida
     let next: "AUTO" | CountryKey = "AUTO";
@@ -1585,8 +1729,9 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
         if (input.value !== v) input.value = v;
       }
       // puoi usare la versione immediata o lasciare il tuo debounced;
+      //applyMaskDebounced(input, selected);
       // se vuoi zero lag qui, crea una variante non debounced.
-      applyMaskDebounced(input, selected);
+      applyMaskNow(input, selected); // 👈 immediata, niente race col debounce
 
       // stato neutro se vuoto o corto
       if (!hasText || short) {

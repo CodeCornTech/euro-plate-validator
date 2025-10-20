@@ -107,11 +107,11 @@ export interface InputMaskLayout {
     showMaskOnFocus?: IMOpts["showMaskOnFocus"];
     placeholder?: string;
 }
-/** Mappe leggibili per UI/placeholder/doc */
+/** Mappe leggibili per UI / placeholder / doc */
 export declare const DISPLAY_FORMATS: Partial<Record<CountryKey, string>>;
 /** Layout Inputmask per digitazione assistita (coerenti con le regex) */
 export declare const INPUTMASK_LAYOUTS: Partial<Record<CountryKey, InputMaskLayout>>;
-/** Helper ergonomici */
+export declare const INPUTMASK_LAYOUTS_FINAL: Partial<Record<CountryKey, InputMaskLayout>>;
 export declare function getInputMask(country: CountryKey): InputMaskLayout | null;
 export declare function getDisplayFormat(country: CountryKey): string | null;
 /**

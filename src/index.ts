@@ -8,6 +8,8 @@
 /** @typedef {{ vehicleType?: VehicleType }} ValidateOptions */
 /** @typedef {{ isValid: boolean; matches: ValidateMatch[]; checked: CountryKey[]; errors?: string[] }} ValidateResult */
 
+import { getInputMask } from "./countries.js"; // (non è obbligatorio, serve solo a evitare che bundler estremi eliminino exports non usati)
+
 import { RX, supportedCountries } from "./countries.js";
 import type { CountryKey, VehicleType, CountryDef } from "./countries.js";
 export type { CountryKey, VehicleType, CountryDef } from "./countries.js";
@@ -69,19 +71,12 @@ function* pickPatternsFor(country: CountryKey, vehicleType: VehicleType): Genera
  *  @param {ValidateOptions=} options          { vehicleType?: "car"|"motorcycle"|"any" } (default "any")
  *  @returns {ValidateResult}
  */
-export function validatePlate(
-  plate: string,
-  countries?: readonly CountryKey[],
-  options: ValidateOptions = {}
-): ValidateResult {
+export function validatePlate(plate: string, countries?: readonly CountryKey[], options: ValidateOptions = {}): ValidateResult {
   const vehicleType: VehicleType = options.vehicleType ?? "any";
   const norm = normalize(plate);
 
   // Normalizza l’elenco dei paesi in un array mutabile locale, tipizzato
-  const picks: CountryKey[] =
-    countries && countries.length
-      ? (countries.filter((c): c is CountryKey => c in RX) as CountryKey[])
-      : [...supportedCountries];
+  const picks: CountryKey[] = countries && countries.length ? (countries.filter((c): c is CountryKey => c in RX) as CountryKey[]) : [...supportedCountries];
 
   if (!norm) {
     return { isValid: false, matches: [], checked: picks, errors: ["empty"] };
