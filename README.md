@@ -2,7 +2,7 @@
 
 > 🚗 European license plate validator (Russia excluded). Multi-country, regex-based validation for EU/EEA license plates. Works in **Node.js**, **TypeScript**, and the **browser** (with a lightweight UI client).
 
-[![Lang: IT](https://img.shields.io/badge/docs-Italiano-green?style=for-the-badge)](./README_IT.md)
+[![Lang: IT](https://img.shields.io/badge/docs-Italiano-green?style=for-the-badge)](./README_IT.md) [![Demo](https://img.shields.io/badge/demo-GitHub%20Pages-0b6efd?style=for-the-badge)](https://codecorntech.github.io/euro-plate-validator/)
 
 ---
 

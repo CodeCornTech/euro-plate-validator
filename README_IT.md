@@ -2,7 +2,7 @@
 
 > 🚗 Validatore di targhe europee (Russia esclusa). Validazione della sintassi basata su espressioni regex multi-paese per targhe UE/SEE. Funziona in **Node.js/TypeScript** e nel **browser** (UI client leggera).
 
-[![Lang: EN](https://img.shields.io/badge/docs-English-red?style=for-the-badge)](./README.md)
+[![Lang: EN](https://img.shields.io/badge/docs-English-red?style=for-the-badge)](./README.md) [![Demo](https://img.shields.io/badge/demo-GitHub%20Pages-0b6efd?style=for-the-badge)](https://codecorntech.github.io/euro-plate-validator/)
 
 ---
 
