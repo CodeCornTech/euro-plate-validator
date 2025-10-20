@@ -1206,7 +1206,7 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
   }
 
   const hardClearMaskDebounced = debounce(hardClearMask, timings.clear);
-  
+
   // untill 1.0.13
   // const normalizePattern = (p: string) =>
   //   String(p)
@@ -1616,7 +1616,7 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
       if (v2 !== raw) input.value = raw = v2;
     }
     // non validiamo finche nn c e un risultato minimo
-    if (raw.trim()?.length <= 2) return { ok: false, value: raw };
+    if (raw.trim()?.length <= 5) return { ok: false, value: raw };
 
     const countries = selected === "AUTO" ? allowed : [selected];
     const res = validatePlate(raw, countries, { vehicleType });
@@ -1712,7 +1712,7 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
     hardClearMask(input); // ⚠️ IMPORTANTISSIMO: rimuovi SUBITO la vecchia mask (no debounce)
 
     const hasText = !!input.value.trim();
-    const short = hasText && input.value.trim().length <= 2;
+    const short = hasText && input.value.trim().length <= 5;
 
     if (selected === "AUTO") {
       // 2) AUTO: nessuna mask
