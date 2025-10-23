@@ -33,25 +33,25 @@ npm install @codecorn/euro-plate-validator
 
 ---
 
-## 🔗 CDN (v1.0.14)
+## 🔗 CDN (v1.0.15)
 
 > Use **versioned URLs** to avoid stale CDN caches.
 
 ### Core module
 
-- **ESM (browser)** `https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.14/dist/browser/index.esm.js`
+- **ESM (browser)** `https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.15/dist/browser/index.esm.js`
 
-- **IIFE (global `window.EuroPlateValidator`)** `https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.14/dist/browser/index.iife.min.js`
+- **IIFE (global `window.EuroPlateValidator`)** `https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.15/dist/browser/index.iife.min.js`
 
 ### Client SDK (UI)
 
-- **ESM** `https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.14/dist/client/index.mjs`
+- **ESM** `https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.15/dist/client/index.mjs`
 
-- **CJS (Node)** `https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.14/dist/client/europlate.client.cjs`
+- **CJS (Node)** `https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.15/dist/client/europlate.client.cjs`
 
 ### Assets (CSS)
 
-- `https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.14/dist/assets/css/styles.css`
+- `https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.15/dist/assets/css/styles.css`
 - (compat alias) `…/assets/css/styles.css`
 
 ---
@@ -197,13 +197,13 @@ type EuroPlateInstance = {
 ### A ) Quick start with a shared `common` config + autoload deps ( Inputmask , jQuery , Toastr )
 
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.14/dist/assets/css/styles.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.15/dist/assets/css/styles.css" />
 
 <div id="plateBox"></div>
 
 <script type="module">
-  import * as EuroMod from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.14/dist/browser/index.esm.js";
-  import { createEuroPlate } from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.14/dist/client/index.mjs";
+  import * as EuroMod from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.15/dist/browser/index.esm.js";
+  import { createEuroPlate } from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.15/dist/client/index.mjs";
 
   // Common options used across examples
   const common = {
@@ -245,12 +245,12 @@ type EuroPlateInstance = {
 ### B ) You provide `Inputmask` manually ( UMD → `window.Inputmask` )
 
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.14/dist/assets/css/styles.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.15/dist/assets/css/styles.css" />
 <script src="https://cdn.jsdelivr.net/npm/inputmask@5.0.9/dist/inputmask.min.js"></script>
 
 <script type="module">
-  import * as EuroMod from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.14/dist/browser/index.esm.js";
-  import { createEuroPlate } from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.14/dist/client/index.mjs";
+  import * as EuroMod from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.15/dist/browser/index.esm.js";
+  import { createEuroPlate } from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.15/dist/client/index.mjs";
 
   createEuroPlate(EuroMod, {
     wrapper: "#plateBox",
@@ -267,8 +267,8 @@ type EuroPlateInstance = {
 
 ```html
 <script type="module">
-  import * as EuroMod from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.14/dist/browser/index.esm.js";
-  import { createEuroPlate } from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.14/dist/client/index.mjs";
+  import * as EuroMod from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.15/dist/browser/index.esm.js";
+  import { createEuroPlate } from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.15/dist/client/index.mjs";
 
   createEuroPlate(EuroMod, {
     wrapper: "#plateBox",
@@ -334,16 +334,16 @@ add_action('wp_enqueue_scripts', function () {
 
   wp_enqueue_style(
     'epv-styles',
-    'https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.14/dist/assets/css/styles.css',
+    'https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.15/dist/assets/css/styles.css',
     [],
-    '1.0.14'
+    '1.0.15'
   );
 
   add_filter('script_loader_tag', function ($tag, $handle) {
     if ($handle === 'epv-init') {
       return '<script type="module">' .
-        'import * as EuroMod from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.14/dist/browser/index.esm.js";' .
-        'import { createEuroPlate } from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.14/dist/client/index.mjs";' .
+        'import * as EuroMod from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.15/dist/browser/index.esm.js";' .
+        'import { createEuroPlate } from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.15/dist/client/index.mjs";' .
         'window.__epvInit=(id,opts)=>createEuroPlate(EuroMod,Object.assign({wrapper:"#"+id,mode:"AUTO",i18n:"IT",debug:true,autoFocusOnInit:false},opts||{}));' .
       '</script>';
     }
@@ -394,7 +394,7 @@ Exit codes:
 
 ## 🧾 Changelog (highlights)
 
-### 1.0.14
+### 1.0.15
 
 - **Inputmask**
   - Safe merge of `definitions` (no hard override of defaults).
@@ -409,7 +409,7 @@ Exit codes:
   - Examples updated with `autoLoadDeps: { inputmask: true, jquery: true, toastr: true }` and `useToastrLogger: true`.
 
 - **Docs**
-  - CDN bumped to **1.0.14**.
+  - CDN bumped to **1.0.15**.
   - Notes about lowercase acceptance and uppercase coercion.
   - Guidance to **not** override `A`/`9` and define only custom tokens for restricted alphabets.
 
