@@ -36,8 +36,6 @@ Notable changes to **@codecorn/euro-plate-validator**. See also [GitHub releases
 - Multiple country matches are possible in AUTO mode when patterns overlap.
 - No Moldova motorcycle-specific format or new runtime dependency was added.
 
-## Previous version highlights
-
 ### 1.0.15
 
 - Improved Inputmask merging while retaining default definitions.
