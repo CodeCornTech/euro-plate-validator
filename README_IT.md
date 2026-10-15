@@ -1,6 +1,6 @@
 # 🌍 @codecorn/euro-plate-validator
 
-> 🚗 Validatore di targhe europee (Russia esclusa). Validazione della sintassi basata su espressioni regex multi-paese per targhe UE/SEE. Funziona in **Node.js/TypeScript** e nel **browser** (UI client leggera).
+> 🚗 Validatore sintattico per targhe europee e Paesi vicini, inclusi Moldavia e Ucraina (Russia esclusa). Per Node.js, TypeScript, browser e PHP.
 
 [![Lang: EN](https://img.shields.io/badge/docs-English-red?style=for-the-badge)](./README.md) [![Demo](https://img.shields.io/badge/demo-GitHub%20Pages-0b6efd?style=for-the-badge)](https://codecorntech.github.io/euro-plate-validator/)
 
@@ -14,7 +14,7 @@
 
 ## ✨ Caratteristiche
 
-- ✅ **Multi-country** (25+ EU/EEA) — auto o paese fisso
+- ✅ **30 Paesi supportati**, inclusa la Moldavia (`MD`) — modalità automatica o Paese fisso
 - 🏍️ Tipi veicolo: `car`, `bike`, `any`
 - 🔠 Normalizzazione (spazi/trattini) + formattatori per paese
 - ↕️ **Minuscole accettate** in input e forzate a **MAIUSCOLO** in mask (token `L` custom)
@@ -33,9 +33,9 @@ npm install @codecorn/euro-plate-validator
 
 ---
 
-## 🔗 CDN (v1.0.13)
+## 🔗 CDN (v1.0.16 — dopo la pubblicazione npm)
 
-> Usa URL **versionati** per evitare cache stantia.
+> La v1.0.16 verrà resa disponibile su CDN **dopo la pubblicazione npm**. Usare URL versionati per evitare cache obsolete.
 
 ### Core (browser)
 
@@ -47,7 +47,7 @@ npm install @codecorn/euro-plate-validator
 
 - **ESM** `https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.16/dist/client/index.mjs`
 
-- **CJS (Node)** `https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.16/dist/client/europlate.client.cjs`
+- **CJS (Node)** `https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.16/dist/client/index.cjs`
 
 ### Assets CSS
 
@@ -393,21 +393,49 @@ Exit code: `0` valido, `1` non valido, `2` errori input.
 
 ---
 
-## 🌍 Supported Countries
+## 🌍 Paesi supportati
 
-🇮🇹 IT | 🇬🇧 UK | 🇩🇪 DE | 🇫🇷 FR | 🇪🇸 ES | 🇵🇹 PT | 🇳🇱 NL | 🇧🇪 BE | 🇨🇭 CH | 🇦🇹 AT | 🇮🇪 IE | 🇱🇺 LU 🇩🇰 DK | 🇸🇪 SE | 🇳🇴 NO | 🇫🇮 FI | 🇵🇱 PL | 🇨🇿 CZ | 🇸🇰 SK | 🇭🇺 HU | 🇷🇴 RO | 🇧🇬 BG | 🇸🇮 SI | 🇭🇷 HR | 🇬🇷 GR 🇱🇹 LT | 🇱🇻 LV | 🇪🇪 EE | 🇺🇦 UA | 🇲🇩 MD
+Il pacchetto supporta **30 Paesi**, inclusa la Moldavia (`MD`).
 
-La Moldavia (`MD`) supporta targhe attuali (`ABC 123`), storiche (`AB CD 123`, `C AB 123`, `K AB 123`), diplomatiche (`CD 123 AB`), della polizia (`MAI 1234`) e della Transnistria (`T 123 AB`). La verifica è **solo sintattica**; non accerta immatricolazione o riconoscimento delle targhe regionali.
+🇮🇹 IT | 🇬🇧 UK | 🇩🇪 DE | 🇫🇷 FR | 🇪🇸 ES | 🇵🇹 PT | 🇳🇱 NL | 🇧🇪 BE | 🇨🇭 CH | 🇦🇹 AT
+🇮🇪 IE | 🇱🇺 LU | 🇩🇰 DK | 🇸🇪 SE | 🇳🇴 NO | 🇫🇮 FI | 🇵🇱 PL | 🇨🇿 CZ | 🇸🇰 SK | 🇭🇺 HU
+🇷🇴 RO | 🇧🇬 BG | 🇸🇮 SI | 🇭🇷 HR | 🇬🇷 GR | 🇱🇹 LT | 🇱🇻 LV | 🇪🇪 EE | 🇺🇦 UA | 🇲🇩 MD
+
+### 🇲🇩 Moldavia (MD)
+
+| Categoria | Esempio |
+| --- | --- |
+| Standard attuale | `ABC 123` |
+| Storica a quattro lettere | `AB CD 123` |
+| Chișinău C | `C AB 123` |
+| Chișinău K | `K AB 123` |
+| Diplomatica | `CD 123 AB` |
+| Polizia / MAI | `MAI 1234` |
+| Transnistria | `T 123 AB` |
 
 ```ts
-validatePlate("ABC 123", ["MD"], { vehicleType: "car" }); // isValid: true
+import { validatePlate, getInputMask } from "@codecorn/euro-plate-validator";
+validatePlate("ABC 123", ["MD"], { vehicleType: "car" }).isValid; // true
+validatePlate("MAI 1234", ["MD"]).isValid; // true
+validatePlate("ABC-123", ["MD"]).isValid; // false
+getInputMask("MD"); // seven mask variants
 ```
 
----
+Sono accettate le minuscole e le varianti compatte senza spazi, ma non i trattini. La verifica è **solo sintattica**, non prova che una targa sia immatricolata o legalmente riconosciuta. I formati condivisi possono generare più corrispondenze in modalità automatica. Vedi la [issue #2](https://github.com/CodeCornTech/euro-plate-validator/issues/2).
 
+---
 ## 🧾 Changelog (highlights)
 
 ### 1.0.16
+
+- Supporto alle targhe moldave (`MD`): sette formati, metadati, bandiera e localizzazione IT/EN.
+- Variante PHP aggiornata insieme al core TypeScript.
+- Fix Inputmask: conserviamo gli array delle maschere alternative.
+- Nuovi test positivi/negativi e regressione in CI.
+
+> **In preparazione:** release e pubblicazione npm solo dopo il merge. Leggi [CHANGELOG.md](./CHANGELOG.md).
+
+### 1.0.15
 
 - **Inputmask**
   - Merge sicuro delle `definitions` (niente override secco dei default).
@@ -422,7 +450,7 @@ validatePlate("ABC 123", ["MD"], { vehicleType: "car" }); // isValid: true
   - Esempi aggiornati con `autoLoadDeps: { inputmask: true, jquery: true, toastr: true }` e `useToastrLogger: true`.
 
 - **Docs**
-  - CDN aggiornato a **1.0.16**.
+  - CDN aggiornato a **1.0.15**.
   - Nota su minuscole accettate + uppercase automatico.
   - ## Linee guida: **non** ridefinire `A`/`9`; definire solo token custom per alfabeti ristretti.
 
