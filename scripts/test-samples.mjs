@@ -62,7 +62,7 @@ const NEG = [
   // FR separatori sbagliati
   { plate: "AB_123_CD", countries: ["FR"] },
   { plate: "ABC-123", countries: ["MD"] },
-  { plate: "MAI 123", countries: ["MD"] },
+  { plate: "MAI 12", countries: ["MD"] },
 ];
 
 let pass = 0,
