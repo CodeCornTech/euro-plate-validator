@@ -1,0 +1,103 @@
+name: Publish v1.0.16 (one-time)
+
+on:
+  push:
+    branches:
+      - release/v1.0.16
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  id-token: write
+
+concurrency:
+  group: publish-euro-plate-validator-v1.0.16
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      EXPECTED_MAIN_SHA: 4ab3c8ff6bd00e9888f8add8b40ec1ad81a2943b
+      RELEASE_VERSION: '1.0.16'
+      GH_TOKEN: ${{ github.token }}
+      NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+    steps:
+      - name: Checkout exact merged main commit
+        uses: actions/checkout@v4
+        with:
+          ref: 4ab3c8ff6bd00e9888f8add8b40ec1ad81a2943b
+          fetch-depth: 0
+
+      - name: Verify main is unchanged and version matches
+        run: |
+          live_main=$(git ls-remote origin refs/heads/main | cut -f1)
+          test "$live_main" = "$EXPECTED_MAIN_SHA"
+          node -e 'const p=require("./package.json"); if(p.name !== "@codecorn/euro-plate-validator" || p.version !== process.env.RELEASE_VERSION) { throw new Error("Unexpected package name/version") }'
+          node -e 'const p=require("./package-lock.json"); if(p.version !== process.env.RELEASE_VERSION || p.packages[""].version !== process.env.RELEASE_VERSION) { throw new Error("Unexpected lockfile version") }'
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies, build and run regression tests
+        run: |
+          npm ci
+          npm run build
+          npm test
+          npm run test:moldova
+
+      - name: Verify package files before publishing
+        run: |
+          npm pack --dry-run --json > /tmp/epv-pack.json
+          node -e 'const fs=require("node:fs"); const items=new Set(JSON.parse(fs.readFileSync("/tmp/epv-pack.json","utf8"))[0].files.map(x=>x.path)); for(const file of ["dist/index.js","dist/index.cjs","dist/browser/index.esm.js","dist/client/index.mjs","dist/client/index.cjs","dist-types/index.d.ts","dist/assets/css/styles.css","README.md","README_IT.md"]){if(!items.has(file))throw new Error("Missing npm package file: "+file)}'
+
+      - name: Install npm CLI with trusted publishing support
+        run: npm install --global npm@11
+
+      - name: Publish npm v1.0.16 when not already published
+        run: |
+          versions=$(npm view @codecorn/euro-plate-validator versions --json)
+          if printf '%s' "$versions" | node -e 'let text="";process.stdin.on("data",chunk=>text+=chunk);process.stdin.on("end",()=>{const versions=JSON.parse(text);process.exit((Array.isArray(versions)?versions:[versions]).includes("1.0.16") ? 0 : 1)})'; then
+            echo 'npm v1.0.16 already exists; not attempting an immutable version republish.'
+          else
+            if [ -n "${NODE_AUTH_TOKEN:-}" ]; then
+              printf '//registry.npmjs.org/:_authToken=%s\n' "$NODE_AUTH_TOKEN" >> "$HOME/.npmrc"
+            fi
+            npm publish --access public --provenance --tag latest
+          fi
+
+      - name: Verify npm release is available
+        run: |
+          actual=$(npm view @codecorn/euro-plate-validator@1.0.16 version --json | tr -d '"')
+          test "$actual" = '1.0.16'
+
+      - name: Tag merged main and create GitHub release
+        run: |
+          git fetch origin --tags
+          if git show-ref --tags --verify --quiet refs/tags/v1.0.16; then
+            tagged=$(git rev-list -n 1 refs/tags/v1.0.16)
+            test "$tagged" = "$EXPECTED_MAIN_SHA"
+          else
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git tag -a v1.0.16 "$EXPECTED_MAIN_SHA" -m 'Release v1.0.16: Moldova plate support'
+            git push origin refs/tags/v1.0.16
+          fi
+          cat > /tmp/epv-release-notes.md <<'NOTES'
+          ## Moldova license plate support
+          - Added Moldova (MD), seven plate formats and browser flag/localization support.
+          - Added PHP validator parity and dedicated Moldova tests in CI.
+          - Fixed browser Inputmask handling of multiple alternative masks.
+          - Updated documentation and changelog.
+
+          Closes #2 via PR #3. Validation is syntax-only.
+          NOTES
+          if gh release view v1.0.16 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo 'GitHub Release v1.0.16 already exists.'
+          else
+            gh release create v1.0.16 --repo "$GITHUB_REPOSITORY" --verify-tag --title 'v1.0.16' --notes-file /tmp/epv-release-notes.md
+          fi
