@@ -55,26 +55,6 @@ jobs:
           npm pack --dry-run --json > /tmp/epv-pack.json
           node -e 'const fs=require("node:fs"); const items=new Set(JSON.parse(fs.readFileSync("/tmp/epv-pack.json","utf8"))[0].files.map(x=>x.path)); for(const file of ["dist/index.js","dist/index.cjs","dist/browser/index.esm.js","dist/client/index.mjs","dist/client/index.cjs","dist-types/index.d.ts","dist/assets/css/styles.css","README.md","README_IT.md"]){if(!items.has(file))throw new Error("Missing npm package file: "+file)}'
 
-      - name: Install npm CLI with trusted publishing support
-        run: npm install --global npm@11
-
-      - name: Publish npm v1.0.16 when not already published
-        run: |
-          versions=$(npm view @codecorn/euro-plate-validator versions --json)
-          if printf '%s' "$versions" | node -e 'let text="";process.stdin.on("data",chunk=>text+=chunk);process.stdin.on("end",()=>{const versions=JSON.parse(text);process.exit((Array.isArray(versions)?versions:[versions]).includes("1.0.16") ? 0 : 1)})'; then
-            echo 'npm v1.0.16 already exists; not attempting an immutable version republish.'
-          else
-            if [ -n "${NODE_AUTH_TOKEN:-}" ]; then
-              printf '//registry.npmjs.org/:_authToken=%s\n' "$NODE_AUTH_TOKEN" >> "$HOME/.npmrc"
-            fi
-            npm publish --access public --provenance --tag latest
-          fi
-
-      - name: Verify npm release is available
-        run: |
-          actual=$(npm view @codecorn/euro-plate-validator@1.0.16 version --json | tr -d '"')
-          test "$actual" = '1.0.16'
-
       - name: Tag merged main and create GitHub release
         run: |
           git fetch origin --tags
@@ -101,3 +81,24 @@ jobs:
           else
             gh release create v1.0.16 --repo "$GITHUB_REPOSITORY" --verify-tag --title 'v1.0.16' --notes-file /tmp/epv-release-notes.md
           fi
+
+      - name: Install npm CLI with trusted publishing support
+        run: npm install --global npm@11
+
+      - name: Publish npm v1.0.16 when not already published
+        run: |
+          versions=$(npm view @codecorn/euro-plate-validator versions --json)
+          if printf '%s' "$versions" | node -e 'let text="";process.stdin.on("data",chunk=>text+=chunk);process.stdin.on("end",()=>{const versions=JSON.parse(text);process.exit((Array.isArray(versions)?versions:[versions]).includes("1.0.16") ? 0 : 1)})'; then
+            echo 'npm v1.0.16 already exists; not attempting an immutable version republish.'
+          else
+            if [ -n "${NODE_AUTH_TOKEN:-}" ]; then
+              printf '//registry.npmjs.org/:_authToken=%s\n' "$NODE_AUTH_TOKEN" >> "$HOME/.npmrc"
+            fi
+            npm publish --access public --provenance --tag latest
+          fi
+
+      - name: Verify npm release is available
+        run: |
+          actual=$(npm view @codecorn/euro-plate-validator@1.0.16 version --json | tr -d '"')
+          test "$actual" = '1.0.16'
+
