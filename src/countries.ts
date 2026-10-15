@@ -3,7 +3,7 @@ import { finalizeInputMaskLayouts } from "./utils/placeholders.js";
 
 // prettier-ignore
 /** Tutti i country code supportati (Russia esclusa) */
-export type CountryKey = "IT" | "UK" | "DE" | "FR" | "ES" | "PT" | "NL" | "BE" | "CH" | "AT" | "IE" | "LU" | "DK" | "SE" | "NO" | "FI" | "PL" | "CZ" | "SK" | "HU" | "RO" | "BG" | "SI" | "HR" | "GR" | "LT" | "LV" | "EE" | "UA";
+export type CountryKey = "IT" | "UK" | "DE" | "FR" | "ES" | "PT" | "NL" | "BE" | "CH" | "AT" | "IE" | "LU" | "DK" | "SE" | "NO" | "FI" | "PL" | "CZ" | "SK" | "HU" | "RO" | "BG" | "SI" | "HR" | "GR" | "LT" | "LV" | "EE" | "UA" | "MD";
 
 /** Tipo veicolo */
 export type VehicleType = "car" | "motorcycle" | "any";
@@ -11,14 +11,14 @@ export type VehicleType = "car" | "motorcycle" | "any";
 // prettier-ignore
 /** Lista di paesi supportati (const + tipizzato) */
 export const supportedCountries = [
-  "IT", "UK", "DE", "FR", "ES", "PT", "NL", "BE", "CH", "AT", "IE", "LU", "DK", "SE", "NO", "FI", "PL", "CZ", "SK", "HU", "RO", "BG", "SI", "HR", "GR", "LT", "LV", "EE", "UA",
+  "IT", "UK", "DE", "FR", "ES", "PT", "NL", "BE", "CH", "AT", "IE", "LU", "DK", "SE", "NO", "FI", "PL", "CZ", "SK", "HU", "RO", "BG", "SI", "HR", "GR", "LT", "LV", "EE", "UA", "MD",
 ] as const satisfies ReadonlyArray<CountryKey>;
 
 // prettier-ignore
 export const FLAG_MAP = {
   IT:"it", UK:"gb", DE:"de", FR:"fr", ES:"es", PT:"pt", NL:"nl", BE:"be", CH:"ch", AT:"at", IE:"ie", LU:"lu",
   DK:"dk", SE:"se", NO:"no", FI:"fi", PL:"pl", CZ:"cz", SK:"sk", HU:"hu", RO:"ro", BG:"bg", SI:"si", HR:"hr",
-  GR:"gr", LT:"lt", LV:"lv", EE:"ee", UA:"ua"
+  GR:"gr", LT:"lt", LV:"lv", EE:"ee", UA:"ua", MD:"md"
 } as const;
 
 // prettier-ignore
@@ -26,7 +26,7 @@ export const COUNTRY_NAMES = {
   IT:"Italy", UK:"United Kingdom", DE:"Germany", FR:"France", ES:"Spain", PT:"Portugal", NL:"Netherlands",
   BE:"Belgium", CH:"Switzerland", AT:"Austria", IE:"Ireland", LU:"Luxembourg", DK:"Denmark", SE:"Sweden",
   NO:"Norway", FI:"Finland", PL:"Poland", CZ:"Czechia", SK:"Slovakia", HU:"Hungary", RO:"Romania", BG:"Bulgaria",
-  SI:"Slovenia", HR:"Croatia", GR:"Greece", LT:"Lithuania", LV:"Latvia", EE:"Estonia", UA:"Ukraine"
+  SI:"Slovenia", HR:"Croatia", GR:"Greece", LT:"Lithuania", LV:"Latvia", EE:"Estonia", UA:"Ukraine", MD:"Moldova"
 } as const;
 
 export type CountryCode = keyof typeof FLAG_MAP;
@@ -127,6 +127,7 @@ export const DISPLAY_FORMATS: Partial<Record<CountryKey, string>> = {
   EE: "123 ABC",
   UA: "AA 1234 AA",
   UK: "AB12 CDE",
+  MD: "AAA 999 | AA AA 999 | C AA 999 | K AA 999 | CD 999 AA | MAI 9999 | T 999 AA",
 };
 
 /** Layout Inputmask per digitazione assistita (coerenti con le regex) */
@@ -327,6 +328,16 @@ export const INPUTMASK_LAYOUTS: Partial<Record<CountryKey, InputMaskLayout>> = {
     // L base
     mask: "LL 9994 LL".replace("9994", "9999"),
     keepStatic: true,
+  },
+
+  // ──────────────────────────────── MOLDOVA ─────────────────────────────────
+  MD: {
+    // Modern, historic, Chișinău (C/K), diplomatic, MAI and Transnistrian layouts.
+    mask: ["LLL 999", "LL LL 999", "C LL 999", "K LL 999", "CD 999 LL", "MAI 9999", "T 999 LL"],
+    placeholder: "___ ___",
+    keepStatic: true,
+    showMaskOnHover: false,
+    showMaskOnFocus: false,
   },
 
   // ──────────────────────────────── LUSSEMBURGO ─────────────────────────────
@@ -530,5 +541,24 @@ export const RX: Record<CountryKey, CountryDef> = {
   LT: { name: "Lithuania", patterns: { car: [{ rx: /^[A-Z]{3}\s?\d{3}$/ }] } },
   LV: { name: "Latvia", patterns: { car: [{ rx: /^[A-Z]{2}-\d{4}$/ }] } },
   EE: { name: "Estonia", patterns: { car: [{ rx: /^\d{3}\s?[A-Z]{3}$/ }] } },
+  MD: {
+    name: "Moldova",
+    patterns: {
+      car: [
+        // Current, three letters and three digits.
+        { rx: /^[A-Z]{3}\s?\d{3}$/ },
+        // Legacy, two region letters, two serial letters and three digits.
+        { rx: /^[A-Z]{2}\s?[A-Z]{2}\s?\d{3}$/ },
+        // Legacy Chișinău C and K prefixes.
+        { rx: /^C\s?[A-Z]{2}\s?\d{3}$/ },
+        { rx: /^K\s?[A-Z]{2}\s?\d{3}$/ },
+        // Diplomatic / Ministry of Internal Affairs.
+        { rx: /^CD\s?\d{3}\s?[A-Z]{2}$/ },
+        { rx: /^MAI\s?\d{4}$/ },
+        // Transnistrian regional series from issue #2.
+        { rx: /^T\s?\d{3}\s?[A-Z]{2}$/ },
+      ],
+    },
+  },
   UA: { name: "Ukraine", patterns: { car: [{ rx: /^[A-Z]{2}\s?\d{4}\s?[A-Z]{2}$/ }] } },
 } satisfies Record<CountryKey, CountryDef>;

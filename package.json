@@ -24,7 +24,8 @@
     "belgium",
     "scandinavia",
     "balkans",
-    "ukraine"
+    "ukraine",
+    "moldova"
   ],
   "type": "module",
   "main": "./dist/index.cjs",
@@ -109,6 +110,7 @@
     "cli-test": "node ./bin/cli.mjs \"AB 123 CD\" --countries IT --type car --pretty",
     "test": "node -e \"import('./dist/index.js').then(m=>console.log(m.validatePlate('AB 123 CD',['IT'])))\"",
     "test:samples": "npm run build && node ./scripts/test-samples.mjs",
+    "test:moldova": "node ./scripts/test-moldova.mjs",
     "test:random": "npm run build && node ./scripts/test-random.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check ."

@@ -28,5 +28,8 @@ jobs:
       - name: Run tests
         run: npm test
 
+      - name: Moldova regression tests
+        run: npm run test:moldova
+
       - name: CLI smoke test
         run: node ./bin/cli.mjs "AB 123 CD" --countries IT --type car --pretty

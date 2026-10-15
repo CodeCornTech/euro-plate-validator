@@ -388,7 +388,13 @@ Exit codes:
 
 ## 🌍 Supported Countries
 
-🇮🇹 IT | 🇬🇧 UK | 🇩🇪 DE | 🇫🇷 FR | 🇪🇸 ES | 🇵🇹 PT | 🇳🇱 NL | 🇧🇪 BE | 🇨🇭 CH | 🇦🇹 AT | 🇮🇪 IE | 🇱🇺 LU 🇩🇰 DK | 🇸🇪 SE | 🇳🇴 NO | 🇫🇮 FI | 🇵🇱 PL | 🇨🇿 CZ | 🇸🇰 SK | 🇭🇺 HU | 🇷🇴 RO | 🇧🇬 BG | 🇸🇮 SI | 🇭🇷 HR | 🇬🇷 GR 🇱🇹 LT | 🇱🇻 LV | 🇪🇪 EE | 🇺🇦 UA
+🇮🇹 IT | 🇬🇧 UK | 🇩🇪 DE | 🇫🇷 FR | 🇪🇸 ES | 🇵🇹 PT | 🇳🇱 NL | 🇧🇪 BE | 🇨🇭 CH | 🇦🇹 AT | 🇮🇪 IE | 🇱🇺 LU 🇩🇰 DK | 🇸🇪 SE | 🇳🇴 NO | 🇫🇮 FI | 🇵🇱 PL | 🇨🇿 CZ | 🇸🇰 SK | 🇭🇺 HU | 🇷🇴 RO | 🇧🇬 BG | 🇸🇮 SI | 🇭🇷 HR | 🇬🇷 GR 🇱🇹 LT | 🇱🇻 LV | 🇪🇪 EE | 🇺🇦 UA | 🇲🇩 MD
+
+Moldova (`MD`) supports current (`ABC 123`), legacy (`AB CD 123`, `C AB 123`, `K AB 123`), diplomatic (`CD 123 AB`), police (`MAI 1234`) and Transnistrian (`T 123 AB`) formats. This is **syntax-only** validation, not confirmation of registration status or regional legal recognition.
+
+```ts
+validatePlate("ABC 123", ["MD"], { vehicleType: "car" }); // isValid: true
+```
 
 ---
 

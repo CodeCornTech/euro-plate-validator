@@ -395,7 +395,13 @@ Exit code: `0` valido, `1` non valido, `2` errori input.
 
 ## 🌍 Supported Countries
 
-🇮🇹 IT | 🇬🇧 UK | 🇩🇪 DE | 🇫🇷 FR | 🇪🇸 ES | 🇵🇹 PT | 🇳🇱 NL | 🇧🇪 BE | 🇨🇭 CH | 🇦🇹 AT | 🇮🇪 IE | 🇱🇺 LU 🇩🇰 DK | 🇸🇪 SE | 🇳🇴 NO | 🇫🇮 FI | 🇵🇱 PL | 🇨🇿 CZ | 🇸🇰 SK | 🇭🇺 HU | 🇷🇴 RO | 🇧🇬 BG | 🇸🇮 SI | 🇭🇷 HR | 🇬🇷 GR 🇱🇹 LT | 🇱🇻 LV | 🇪🇪 EE | 🇺🇦 UA
+🇮🇹 IT | 🇬🇧 UK | 🇩🇪 DE | 🇫🇷 FR | 🇪🇸 ES | 🇵🇹 PT | 🇳🇱 NL | 🇧🇪 BE | 🇨🇭 CH | 🇦🇹 AT | 🇮🇪 IE | 🇱🇺 LU 🇩🇰 DK | 🇸🇪 SE | 🇳🇴 NO | 🇫🇮 FI | 🇵🇱 PL | 🇨🇿 CZ | 🇸🇰 SK | 🇭🇺 HU | 🇷🇴 RO | 🇧🇬 BG | 🇸🇮 SI | 🇭🇷 HR | 🇬🇷 GR 🇱🇹 LT | 🇱🇻 LV | 🇪🇪 EE | 🇺🇦 UA | 🇲🇩 MD
+
+La Moldavia (`MD`) supporta targhe attuali (`ABC 123`), storiche (`AB CD 123`, `C AB 123`, `K AB 123`), diplomatiche (`CD 123 AB`), della polizia (`MAI 1234`) e della Transnistria (`T 123 AB`). La verifica è **solo sintattica**; non accerta immatricolazione o riconoscimento delle targhe regionali.
+
+```ts
+validatePlate("ABC 123", ["MD"], { vehicleType: "car" }); // isValid: true
+```
 
 ---
 

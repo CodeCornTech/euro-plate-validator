@@ -750,7 +750,7 @@ const DICT: Record<
     countries: {
       IT: "Italia", UK: "Regno Unito", DE: "Germania", FR: "Francia", ES: "Spagna", PT: "Portogallo", NL: "Paesi Bassi", BE: "Belgio", CH: "Svizzera", AT: "Austria", IE: "Irlanda",
       LU: "Lussemburgo", DK: "Danimarca", SE: "Svezia", NO: "Norvegia", FI: "Finlandia", PL: "Polonia", CZ: "Cechia", SK: "Slovacchia", HU: "Ungheria", RO: "Romania", BG: "Bulgaria", 
-      SI: "Slovenia", HR: "Croazia", GR: "Grecia", LT: "Lituania", LV: "Lettonia", EE: "Estonia", UA: "Ucraina" 
+      SI: "Slovenia", HR: "Croazia", GR: "Grecia", LT: "Lituania", LV: "Lettonia", EE: "Estonia", UA: "Ucraina", MD: "Moldavia" 
     },
   },
   en: {
@@ -762,7 +762,7 @@ const DICT: Record<
     countries:{
       IT: "Italy", UK: "United Kingdom", DE: "Germany", FR: "France", ES: "Spain", PT: "Portugal", NL: "Netherlands", BE: "Belgium", CH: "Switzerland", AT: "Austria", IE: "Ireland", 
       LU: "Luxembourg", DK: "Denmark", SE: "Sweden", NO: "Norway", FI: "Finland", PL: "Poland", CZ: "Czechia", SK: "Slovakia", HU: "Hungary", RO: "Romania", BG: "Bulgaria", SI: "Slovenia", 
-      HR: "Croatia", GR: "Greece", LT: "Lithuania", LV: "Latvia", EE: "Estonia", UA: "Ukraine" 
+      HR: "Croatia", GR: "Greece", LT: "Lithuania", LV: "Latvia", EE: "Estonia", UA: "Ukraine", MD: "Moldova" 
     },
   },
 };
@@ -1213,7 +1213,13 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
   //     .replace(/A\{(\d+)\}/g, (_, n) => "A".repeat(+n))
   //     .replace(/9\{(\d+)\}/g, (_, n) => "9".repeat(+n));
   
-  const normalizePattern = (p: string) => String(p).replace(/([ALH9X])\{(\d)\}/g, (_, t, n) => String(t).repeat(n));
+  function normalizePattern(p: string): string;
+  function normalizePattern(p: string[]): string[];
+  function normalizePattern(p: string | string[]): string | string[] {
+    return Array.isArray(p)
+      ? p.map((part) => normalizePattern(part))
+      : p.replace(/([ALH9X])\{(\d+)\}/g, (_, t, n) => t.repeat(Number(n)));
+  }
 
   // ===== Logging centralizzato (usa BADGE/LOG se presenti) =====
   function imLog(level: "debug" | "info" | "warn" | "error", title: string, payload?: any) {

@@ -95,6 +95,18 @@ function europlate_rx_map(): array
         'LT' => ['name' => 'Lithuania', 'car' => ['/^[A-Z]{3}\s?\d{3}$/']],
         'LV' => ['name' => 'Latvia', 'car' => ['/^[A-Z]{2}-\d{4}$/']],
         'EE' => ['name' => 'Estonia', 'car' => ['/^\d{3}\s?[A-Z]{3}$/']],
+        'MD' => [
+            'name' => 'Moldova',
+            'car' => [
+                '/^[A-Z]{3}\s?\d{3}$/',
+                '/^[A-Z]{2}\s?[A-Z]{2}\s?\d{3}$/',
+                '/^C\s?[A-Z]{2}\s?\d{3}$/',
+                '/^K\s?[A-Z]{2}\s?\d{3}$/',
+                '/^CD\s?\d{3}\s?[A-Z]{2}$/',
+                '/^MAI\s?\d{4}$/',
+                '/^T\s?\d{3}\s?[A-Z]{2}$/'
+            ]
+        ],
         'UA' => ['name' => 'Ukraine', 'car' => ['/^[A-Z]{2}\s?\d{4}\s?[A-Z]{2}$/']]
     ];
 }
