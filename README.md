@@ -1,6 +1,6 @@
 # 🌍 @codecorn/euro-plate-validator
 
-> 🚗 European license plate validator (Russia excluded). Multi-country, regex-based validation for EU/EEA license plates. Works in **Node.js**, **TypeScript**, and the **browser** (with a lightweight UI client).
+> 🚗 Syntax-only license plate validator for European and nearby countries, including Moldova and Ukraine (Russia excluded). Supports Node.js, TypeScript, browser and PHP.
 
 [![Lang: IT](https://img.shields.io/badge/docs-Italiano-green?style=for-the-badge)](./README_IT.md) [![Demo](https://img.shields.io/badge/demo-GitHub%20Pages-0b6efd?style=for-the-badge)](https://codecorntech.github.io/euro-plate-validator/)
 
@@ -14,7 +14,7 @@
 
 ## ✨ Features
 
-- ✅ **Multi-country** support (25+ EU/EEA)
+- ✅ **30 supported countries**, including Moldova (`MD`) — automatic or fixed-country mode
 - 🚫 **Russia excluded** by design
 - 🔠 Normalizes input (spaces, hyphens, case)
 - 🧠 Smart regex engine per-country (car/motorcycle aware)
@@ -33,49 +33,26 @@ npm install @codecorn/euro-plate-validator
 
 ---
 
-## 🔗 CDN (v1.0.15)
+## 🔗 CDN (v1.0.16 — after npm publication)
 
-> Use **versioned URLs** to avoid stale CDN caches.
+> v1.0.16 CDN assets will be available **after npm publishing**. Use versioned URLs to avoid stale caches.
 
 ### Core module
 
-- **ESM (browser)** `https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.15/dist/browser/index.esm.js`
+- **ESM (browser)** `https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.16/dist/browser/index.esm.js`
 
-- **IIFE (global `window.EuroPlateValidator`)** `https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.15/dist/browser/index.iife.min.js`
+- **IIFE (global `window.EuroPlateValidator`)** `https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.16/dist/browser/index.iife.min.js`
 
 ### Client SDK (UI)
 
-- **ESM** `https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.15/dist/client/index.mjs`
+- **ESM** `https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.16/dist/client/index.mjs`
 
-- **CJS (Node)** `https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.15/dist/client/europlate.client.cjs`
+- **CJS (Node)** `https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.16/dist/client/index.cjs`
 
 ### Assets (CSS)
 
-- `https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.15/dist/assets/css/styles.css`
+- `https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.16/dist/assets/css/styles.css`
 - (compat alias) `…/assets/css/styles.css`
-
----
-
-## 🧠 Core API
-
-### Node.js / TypeScript
-
-```ts
-import { validatePlate } from "@codecorn/euro-plate-validator";
-
-// Italy (car)
-validatePlate("AB 123 CD", ["IT"], { vehicleType: "car" });
-// → { isValid: true, matches: [{country:"IT", name:"Italy"}], checked:["IT"] }
-
-// UK vs IE
-validatePlate("AB12 CDE", ["UK", "IE"]);
-```
-
----
-
-## 🧩 Browser Client SDK — `createEuroPlate()`
-
-The browser client auto-generates a full UI (`flag + input + dropdown + status`) or attaches to an existing `<input>`. ecco la versione **EN** tradotta 1 : 1 . Ho lasciato **il codice invariato** , e ho applicato lo spazio prima / dopo la punteggiatura solo al testo in prosa .
 
 ---
 
@@ -197,13 +174,13 @@ type EuroPlateInstance = {
 ### A ) Quick start with a shared `common` config + autoload deps ( Inputmask , jQuery , Toastr )
 
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.15/dist/assets/css/styles.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.16/dist/assets/css/styles.css" />
 
 <div id="plateBox"></div>
 
 <script type="module">
-  import * as EuroMod from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.15/dist/browser/index.esm.js";
-  import { createEuroPlate } from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.15/dist/client/index.mjs";
+  import * as EuroMod from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.16/dist/browser/index.esm.js";
+  import { createEuroPlate } from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.16/dist/client/index.mjs";
 
   // Common options used across examples
   const common = {
@@ -245,12 +222,12 @@ type EuroPlateInstance = {
 ### B ) You provide `Inputmask` manually ( UMD → `window.Inputmask` )
 
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.15/dist/assets/css/styles.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.16/dist/assets/css/styles.css" />
 <script src="https://cdn.jsdelivr.net/npm/inputmask@5.0.9/dist/inputmask.min.js"></script>
 
 <script type="module">
-  import * as EuroMod from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.15/dist/browser/index.esm.js";
-  import { createEuroPlate } from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.15/dist/client/index.mjs";
+  import * as EuroMod from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.16/dist/browser/index.esm.js";
+  import { createEuroPlate } from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.16/dist/client/index.mjs";
 
   createEuroPlate(EuroMod, {
     wrapper: "#plateBox",
@@ -267,8 +244,8 @@ type EuroPlateInstance = {
 
 ```html
 <script type="module">
-  import * as EuroMod from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.15/dist/browser/index.esm.js";
-  import { createEuroPlate } from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.15/dist/client/index.mjs";
+  import * as EuroMod from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.16/dist/browser/index.esm.js";
+  import { createEuroPlate } from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.16/dist/client/index.mjs";
 
   createEuroPlate(EuroMod, {
     wrapper: "#plateBox",
@@ -334,16 +311,16 @@ add_action('wp_enqueue_scripts', function () {
 
   wp_enqueue_style(
     'epv-styles',
-    'https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.15/dist/assets/css/styles.css',
+    'https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.16/dist/assets/css/styles.css',
     [],
-    '1.0.15'
+    '1.0.16'
   );
 
   add_filter('script_loader_tag', function ($tag, $handle) {
     if ($handle === 'epv-init') {
       return '<script type="module">' .
-        'import * as EuroMod from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.15/dist/browser/index.esm.js";' .
-        'import { createEuroPlate } from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.15/dist/client/index.mjs";' .
+        'import * as EuroMod from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.16/dist/browser/index.esm.js";' .
+        'import { createEuroPlate } from "https://cdn.jsdelivr.net/npm/@codecorn/euro-plate-validator@1.0.16/dist/client/index.mjs";' .
         'window.__epvInit=(id,opts)=>createEuroPlate(EuroMod,Object.assign({wrapper:"#"+id,mode:"AUTO",i18n:"IT",debug:true,autoFocusOnInit:false},opts||{}));' .
       '</script>';
     }
@@ -386,13 +363,48 @@ Exit codes:
 
 ---
 
-## 🌍 Supported Countries
+## 🌍 Supported countries
 
-🇮🇹 IT | 🇬🇧 UK | 🇩🇪 DE | 🇫🇷 FR | 🇪🇸 ES | 🇵🇹 PT | 🇳🇱 NL | 🇧🇪 BE | 🇨🇭 CH | 🇦🇹 AT | 🇮🇪 IE | 🇱🇺 LU 🇩🇰 DK | 🇸🇪 SE | 🇳🇴 NO | 🇫🇮 FI | 🇵🇱 PL | 🇨🇿 CZ | 🇸🇰 SK | 🇭🇺 HU | 🇷🇴 RO | 🇧🇬 BG | 🇸🇮 SI | 🇭🇷 HR | 🇬🇷 GR 🇱🇹 LT | 🇱🇻 LV | 🇪🇪 EE | 🇺🇦 UA
+The package supports **30 countries**, including Moldova (`MD`).
+
+🇮🇹 IT | 🇬🇧 UK | 🇩🇪 DE | 🇫🇷 FR | 🇪🇸 ES | 🇵🇹 PT | 🇳🇱 NL | 🇧🇪 BE | 🇨🇭 CH | 🇦🇹 AT
+🇮🇪 IE | 🇱🇺 LU | 🇩🇰 DK | 🇸🇪 SE | 🇳🇴 NO | 🇫🇮 FI | 🇵🇱 PL | 🇨🇿 CZ | 🇸🇰 SK | 🇭🇺 HU
+🇷🇴 RO | 🇧🇬 BG | 🇸🇮 SI | 🇭🇷 HR | 🇬🇷 GR | 🇱🇹 LT | 🇱🇻 LV | 🇪🇪 EE | 🇺🇦 UA | 🇲🇩 MD
+
+### 🇲🇩 Moldova (MD)
+
+| Category | Example |
+| --- | --- |
+| Current standard | `ABC 123` |
+| Four-letter legacy | `AB CD 123` |
+| Chișinău C | `C AB 123` |
+| Chișinău K | `K AB 123` |
+| Diplomatic | `CD 123 AB` |
+| Police / MAI | `MAI 1234` |
+| Transnistria | `T 123 AB` |
+
+```ts
+import { validatePlate, getInputMask } from "@codecorn/euro-plate-validator";
+validatePlate("ABC 123", ["MD"], { vehicleType: "car" }).isValid; // true
+validatePlate("MAI 1234", ["MD"]).isValid; // true
+validatePlate("ABC-123", ["MD"]).isValid; // false
+getInputMask("MD"); // seven mask variants
+```
+
+Lowercase and compact unspaced forms are supported, but hyphens are not. Validation checks **syntax only**, not actual registration or legal recognition. AUTO mode may report multiple countries for overlapping patterns. See [issue #2](https://github.com/CodeCornTech/euro-plate-validator/issues/2).
 
 ---
 
 ## 🧾 Changelog (highlights)
+
+### 1.0.16
+
+- Moldova (`MD`) support: seven plate formats, metadata, flag and IT/EN country labels.
+- PHP validator updated alongside the TypeScript core.
+- Inputmask now preserves arrays of alternative masks.
+- Dedicated positive/negative tests and CI regression coverage.
+
+> **Upcoming:** GitHub release and npm publish after merge. See [CHANGELOG.md](./CHANGELOG.md).
 
 ### 1.0.15
 
@@ -423,11 +435,11 @@ Exit codes:
   - `showStatusText: boolean`
   - `iconPosition: "left" | "right"`
 
-- Riserva spazio automatica via `:has([data-state])`
-- Nessuno stato su campo vuoto / parziale
-- Fix cambio paese (IT↔FR) e Inputmask merge (`A/H/9`)
-- Refactor UI status (`setValidityUI` unico writer)
-- Add `clearStatusUI()` per idle neutro
+- Automatic layout space reservation via `:has([data-state])`
+- No status shown for empty or partial input
+- Fixed country switching (IT↔FR) and Inputmask definitions merging (`A/H/9`)
+- Refactored status rendering with `setValidityUI` as the single writer
+- Added `clearStatusUI()` for a neutral idle state
 
 ---
 

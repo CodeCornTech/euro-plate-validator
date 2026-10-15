@@ -169,6 +169,19 @@ function sampleUA() {
   return `${R.A(2)} ${R.N(4)} ${R.A(2)}`;
 }
 
+function sampleMD() {
+  const variants = [
+    () => `${R.A(3)} ${R.N(3)}`,
+    () => `${R.A(2)} ${R.A(2)} ${R.N(3)}`,
+    () => `C ${R.A(2)} ${R.N(3)}`,
+    () => `K ${R.A(2)} ${R.N(3)}`,
+    () => `CD ${R.N(3)} ${R.A(2)}`,
+    () => `MAI ${R.N(4)}`,
+    () => `T ${R.N(3)} ${R.A(2)}`,
+  ];
+  return variants[Math.floor(Math.random() * variants.length)]();
+}
+
 // Generatori per paese
 const GEN = {
   IT: sampleIT,
@@ -200,6 +213,7 @@ const GEN = {
   LV: sampleLV,
   EE: sampleEE,
   UA: sampleUA,
+  MD: sampleMD,
 };
 
 // Negative fisse

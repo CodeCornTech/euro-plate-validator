@@ -1,6 +1,6 @@
 {
   "name": "@codecorn/euro-plate-validator",
-  "version": "1.0.15",
+  "version": "1.0.16",
   "description": "European license plate validator (Russia excluded).Syntax-only validation via regex for multiple EU/EEA countries including Italy, UK, Germany, France, Spain and more.Supports Node.js (TypeScript package) and PHP library.",
   "keywords": [
     "license-plate",
@@ -24,7 +24,8 @@
     "belgium",
     "scandinavia",
     "balkans",
-    "ukraine"
+    "ukraine",
+    "moldova"
   ],
   "type": "module",
   "main": "./dist/index.cjs",
@@ -109,6 +110,7 @@
     "cli-test": "node ./bin/cli.mjs \"AB 123 CD\" --countries IT --type car --pretty",
     "test": "node -e \"import('./dist/index.js').then(m=>console.log(m.validatePlate('AB 123 CD',['IT'])))\"",
     "test:samples": "npm run build && node ./scripts/test-samples.mjs",
+    "test:moldova": "node ./scripts/test-moldova.mjs",
     "test:random": "npm run build && node ./scripts/test-random.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
@@ -132,5 +134,8 @@
   },
   "engines": {
     "node": ">=18"
+  },
+  "allowScripts": {
+    "esbuild": true
   }
 }

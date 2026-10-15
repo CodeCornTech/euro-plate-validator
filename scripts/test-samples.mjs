@@ -47,6 +47,7 @@ const POS = {
   LV: ["AB-1234", "ZZ-0001", "AA-9999"],
   EE: ["123 ABC", "001 ABC", "999 ZZZ"],
   UA: ["AA 1234 BB", "BC1234DE", "AK 0001 AA"],
+  MD: ["ABC 123", "AB CD 123", "C AB 123", "K AB 123", "CD 123 AB", "MAI 1234", "T 123 AB"],
 };
 
 // Alcune negative per rumore
@@ -60,6 +61,8 @@ const NEG = [
   { plate: "B 1234-MA", countries: ["DE"] },
   // FR separatori sbagliati
   { plate: "AB_123_CD", countries: ["FR"] },
+  { plate: "ABC-123", countries: ["MD"] },
+  { plate: "MAI 12", countries: ["MD"] },
 ];
 
 let pass = 0,
