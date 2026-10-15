@@ -424,7 +424,8 @@ getInputMask("MD"); // seven mask variants
 Sono accettate le minuscole e le varianti compatte senza spazi, ma non i trattini. La verifica è **solo sintattica**, non prova che una targa sia immatricolata o legalmente riconosciuta. I formati condivisi possono generare più corrispondenze in modalità automatica. Vedi la [issue #2](https://github.com/CodeCornTech/euro-plate-validator/issues/2).
 
 ---
-## 🧾 Changelog (highlights)
+
+## 🧾 Novità e changelog
 
 ### 1.0.16
 
@@ -452,7 +453,7 @@ Sono accettate le minuscole e le varianti compatte senza spazi, ma non i trattin
 - **Docs**
   - CDN aggiornato a **1.0.15**.
   - Nota su minuscole accettate + uppercase automatico.
-  - ## Linee guida: **non** ridefinire `A`/`9`; definire solo token custom per alfabeti ristretti.
+  - Linee guida: **non** ridefinire `A`/`9`; definire solo token personalizzati per alfabeti ristretti.
 
 ---
 
