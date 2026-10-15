@@ -394,6 +394,7 @@ getInputMask("MD"); // seven mask variants
 Lowercase and compact unspaced forms are supported, but hyphens are not. Validation checks **syntax only**, not actual registration or legal recognition. AUTO mode may report multiple countries for overlapping patterns. See [issue #2](https://github.com/CodeCornTech/euro-plate-validator/issues/2).
 
 ---
+
 ## 🧾 Changelog (highlights)
 
 ### 1.0.16
@@ -434,11 +435,11 @@ Lowercase and compact unspaced forms are supported, but hyphens are not. Validat
   - `showStatusText: boolean`
   - `iconPosition: "left" | "right"`
 
-- Riserva spazio automatica via `:has([data-state])`
-- Nessuno stato su campo vuoto / parziale
-- Fix cambio paese (IT↔FR) e Inputmask merge (`A/H/9`)
-- Refactor UI status (`setValidityUI` unico writer)
-- Add `clearStatusUI()` per idle neutro
+- Automatic layout space reservation via `:has([data-state])`
+- No status shown for empty or partial input
+- Fixed country switching (IT↔FR) and Inputmask definitions merging (`A/H/9`)
+- Refactored status rendering with `setValidityUI` as the single writer
+- Added `clearStatusUI()` for a neutral idle state
 
 ---
 
