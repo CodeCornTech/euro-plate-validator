@@ -31,7 +31,7 @@ for (const [label, plate] of positive) {
   assert.ok(validatePlate(plate).matches.some((match) => match.country === "MD"));
   assert.equal(validatePlate(plate, ["MD"], { vehicleType: "motorcycle" }).isValid, false);
 }
-const negative = ["", "AB 12", "ABC-123", "AB_CD_123", "AB CDE 123", "ABCDE123", "CD 12 AB", "CD 123 ABC", "MAI 123", "MAI 12345", "T 12 AB", "T 123 ABC", "C AB 12", "AAA 12A", "123 ABC"];
+const negative = ["", "AB 12", "ABC-123", "AB_CD_123", "AB CDE 123", "ABCDE123", "CD 12 AB", "CD 123 ABC", "MAI 12", "MAI 12345", "T 12 AB", "T 123 ABC", "C AB 12", "AAA 12A", "123 ABC"];
 for (const plate of negative) {
   assert.equal(validatePlate(plate, ["MD"]).isValid, false, `Invalid MD plate: ${plate}`);
 }
