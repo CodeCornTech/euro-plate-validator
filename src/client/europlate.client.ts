@@ -1215,6 +1215,7 @@ export function createEuroPlate(EuroMod: any, opts: EuroPlateOptions): EuroPlate
   
   function normalizePattern(p: string): string;
   function normalizePattern(p: string[]): string[];
+  function normalizePattern(p: string | string[]): string | string[];
   function normalizePattern(p: string | string[]): string | string[] {
     return Array.isArray(p)
       ? p.map((part) => normalizePattern(part))
