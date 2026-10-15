@@ -1,9 +1,9 @@
 /** Tutti i country code supportati (Russia esclusa) */
-export type CountryKey = "IT" | "UK" | "DE" | "FR" | "ES" | "PT" | "NL" | "BE" | "CH" | "AT" | "IE" | "LU" | "DK" | "SE" | "NO" | "FI" | "PL" | "CZ" | "SK" | "HU" | "RO" | "BG" | "SI" | "HR" | "GR" | "LT" | "LV" | "EE" | "UA";
+export type CountryKey = "IT" | "UK" | "DE" | "FR" | "ES" | "PT" | "NL" | "BE" | "CH" | "AT" | "IE" | "LU" | "DK" | "SE" | "NO" | "FI" | "PL" | "CZ" | "SK" | "HU" | "RO" | "BG" | "SI" | "HR" | "GR" | "LT" | "LV" | "EE" | "UA" | "MD";
 /** Tipo veicolo */
 export type VehicleType = "car" | "motorcycle" | "any";
 /** Lista di paesi supportati (const + tipizzato) */
-export declare const supportedCountries: readonly ["IT", "UK", "DE", "FR", "ES", "PT", "NL", "BE", "CH", "AT", "IE", "LU", "DK", "SE", "NO", "FI", "PL", "CZ", "SK", "HU", "RO", "BG", "SI", "HR", "GR", "LT", "LV", "EE", "UA"];
+export declare const supportedCountries: readonly ["IT", "UK", "DE", "FR", "ES", "PT", "NL", "BE", "CH", "AT", "IE", "LU", "DK", "SE", "NO", "FI", "PL", "CZ", "SK", "HU", "RO", "BG", "SI", "HR", "GR", "LT", "LV", "EE", "UA", "MD"];
 export declare const FLAG_MAP: {
     readonly IT: "it";
     readonly UK: "gb";
@@ -34,6 +34,7 @@ export declare const FLAG_MAP: {
     readonly LV: "lv";
     readonly EE: "ee";
     readonly UA: "ua";
+    readonly MD: "md";
 };
 export declare const COUNTRY_NAMES: {
     readonly IT: "Italy";
@@ -65,6 +66,7 @@ export declare const COUNTRY_NAMES: {
     readonly LV: "Latvia";
     readonly EE: "Estonia";
     readonly UA: "Ukraine";
+    readonly MD: "Moldova";
 };
 export type CountryCode = keyof typeof FLAG_MAP;
 /**
