@@ -82,23 +82,20 @@ jobs:
             gh release create v1.0.16 --repo "$GITHUB_REPOSITORY" --verify-tag --title 'v1.0.16' --notes-file /tmp/epv-release-notes.md
           fi
 
-      - name: Install npm CLI with trusted publishing support
-        run: npm install --global npm@11
-
-      - name: Publish npm v1.0.16 when not already published
+      - name: Wait for npm registry to expose v1.0.16 and latest
         run: |
-          versions=$(npm view @codecorn/euro-plate-validator versions --json)
-          if printf '%s' "$versions" | node -e 'let text="";process.stdin.on("data",chunk=>text+=chunk);process.stdin.on("end",()=>{const versions=JSON.parse(text);process.exit((Array.isArray(versions)?versions:[versions]).includes("1.0.16") ? 0 : 1)})'; then
-            echo 'npm v1.0.16 already exists; not attempting an immutable version republish.'
-          else
-            if [ -n "${NODE_AUTH_TOKEN:-}" ]; then
-              printf '//registry.npmjs.org/:_authToken=%s\n' "$NODE_AUTH_TOKEN" >> "$HOME/.npmrc"
+          # npm publish already succeeded in run 38689032617.
+          # Do not republish the immutable v1.0.16 version.
+          for attempt in $(seq 1 40); do
+            actual=$(npm view @codecorn/euro-plate-validator@1.0.16 version --json --prefer-online 2>/dev/null | tr -d '"[:space:]' || true)
+            latest=$(npm view @codecorn/euro-plate-validator dist-tags.latest --json --prefer-online 2>/dev/null | tr -d '"[:space:]' || true)
+            echo "Attempt $attempt/40: published=${actual:-unavailable} latest=${latest:-unavailable}"
+            if [ "$actual" = '1.0.16' ] && [ "$latest" = '1.0.16' ]; then
+              echo 'npm publication and latest dist-tag verified successfully.'
+              exit 0
             fi
-            npm publish --access public --provenance --tag latest
-          fi
-
-      - name: Verify npm release is available
-        run: |
-          actual=$(npm view @codecorn/euro-plate-validator@1.0.16 version --json | tr -d '"')
-          test "$actual" = '1.0.16'
+            sleep 15
+          done
+          echo '::error::npm registry did not expose v1.0.16 with latest tag within the verification window.'
+          exit 1
 
