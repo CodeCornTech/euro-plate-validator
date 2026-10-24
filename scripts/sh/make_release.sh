@@ -592,6 +592,9 @@ do_release() {
     # Tag GH: se npm version ha già creato il tag, lo vedremo esistente
     ensure_tag
 
+    source "$REPO_ROOT_DIR/scripts/lib/cc-ui.sh"
+    cc_ui_section "GitHub Release · v$VERSION_TAG"
+
     # Assets (compat bash 3.2; niente mapfile/echo; safe con spazi; no trap su zero match)
     local -a assets_arg=()
     if [[ -n "$ASSETS_GLOB" ]]; then
@@ -603,11 +606,12 @@ do_release() {
 
         if ((${#matches[@]})); then
             for f in "${matches[@]}"; do
-                assets_arg+=(--attach "$f")
+                [[ -f "$f" ]] || die "Asset non valido: $f"
+                assets_arg+=("$f")
             done
             info "Allegati : ${matches[*]}"
         else
-            warn "Nessun file combacia con glob : $ASSETS_GLOB"
+            die "Nessun file combacia con glob : $ASSETS_GLOB"
         fi
     fi
 
@@ -619,16 +623,26 @@ do_release() {
         notes_arg=(--generate-notes)
     fi
 
-    local -a cmd=(gh release create "v$VERSION_TAG" --title "v$VERSION_TAG")
-    [[ -n "$preflag" ]] && cmd+=("$preflag")
-    cmd+=("${notes_arg[@]}" "${assets_arg[@]}")
+    local -a cmd=(gh release create "v$VERSION_TAG" "${assets_arg[@]}" --title "v$VERSION_TAG" --verify-tag)
+    if [[ -n "$preflag" ]]; then
+        cmd+=("$preflag" --latest=false)
+    else
+        cmd+=(--latest)
+    fi
+    cmd+=("${notes_arg[@]}")
 
     if [[ "$DRY_RUN" == true ]]; then
         warn "DRY-RUN : salto creazione release"
         log "cmd" " ${cmd[*]} "
     else
-        info "Creo la release su GitHub …"
+        cc_ui_step "Pubblicazione unica con asset e Latest"
         run "${cmd[@]}"
+        if [[ -z "$preflag" ]]; then
+            local latest_tag=""
+            latest_tag="$(gh api repos/:owner/:repo/releases/latest --jq .tag_name)" || return 1
+            [[ "$latest_tag" == "v$VERSION_TAG" ]] || die "GitHub Latest=$latest_tag; previsto v$VERSION_TAG"
+            cc_ui_ok "GitHub Latest verificata: $latest_tag"
+        fi
         ok "Release v$VERSION_TAG pubblicata"
     fi
 
