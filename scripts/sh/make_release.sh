@@ -592,7 +592,7 @@ do_release() {
     # Tag GH: se npm version ha già creato il tag, lo vedremo esistente
     ensure_tag
 
-    source "$REPO_ROOT_DIR/scripts/lib/cc-ui.sh"
+    source "$(pwd -P)/scripts/lib/cc-ui.sh"
     cc_ui_section "GitHub Release · v$VERSION_TAG"
 
     # Assets (compat bash 3.2; niente mapfile/echo; safe con spazi; no trap su zero match)
