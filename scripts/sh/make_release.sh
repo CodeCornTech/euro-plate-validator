@@ -619,7 +619,8 @@ do_release() {
     local -a notes_arg=()
     if [[ -n "$RELEASE_NOTES" ]]; then
         notes_arg=(--notes "$RELEASE_NOTES")
-    elif [[ "$GENERATE_NOTES" == true ]]; then
+    else
+        # Automatic notes, including associated merged PRs, are the default.
         notes_arg=(--generate-notes)
     fi
 
